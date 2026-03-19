@@ -30,7 +30,7 @@ export type HostApiSchema = Record<
   }
 >;
 
-export interface ToolDefinition<Input = unknown, Output = unknown> {
+export interface ToolDefinition<Input = any, Output = any> {
   name: string;
   description: string;
   inputSchema?: unknown;
@@ -43,7 +43,7 @@ export interface AgentPlugin {
   icon?: string;
   description: string;
   systemPrompt: string;
-  tools: ToolDefinition[];
+  tools: ToolDefinition<any, any>[];
 }
 
 export interface AgentSession {
