@@ -56,10 +56,27 @@ Deploy this repo to Vercel, set `GROQ_API_KEY`, and embed the widget with one sc
   src="https://your-deploy-url/agentbar.js"
   data-site="https://your-site.com"
   data-api="https://your-deploy-url"
+  data-depth="2"
+  data-max-pages="25"
+  data-site-key="your-site-key"
 ></script>
 ```
 
-The embed script calls `/api/ingest` to scrape your site and `/api/chat` to run Groq inference.
+The embed script calls `/api/ingest` to crawl your site (uses `sitemap.xml` if present) and
+`/api/chat` to run Groq inference. Responses stream in real time.
+
+### Embed options
+
+- `data-site` - base URL to crawl.
+- `data-api` - deployment URL hosting the API routes.
+- `data-site-key` - custom key for multi-site deployments.
+- `data-depth` - crawl depth (default: 1).
+- `data-max-pages` - max pages to index (default: 15).
+- `data-theme-color` - brand color (hex).
+- `data-title` - widget title.
+- `data-subtitle` - widget subtitle.
+- `data-position` - `left`, `right`, or `bottom`.
+- `data-open` - `true` to open on load.
 
 ## Documentation Site
 
@@ -145,7 +162,14 @@ The one-line embed uses Groq via the `/api/chat` route. Set this in your Vercel 
 
 ```
 GROQ_API_KEY=your-key
+GROQ_MODEL=llama-3.1-8b-instant
 ```
+
+## Admin endpoints
+
+- `POST /api/ingest` with `{ url, depth, maxPages, siteKey?, force? }`
+- `POST /api/chat` with `{ siteUrl, siteKey?, messages, stream? }`
+- `GET /api/status` to list indexed sites and pages
 
 ## Publishing
 

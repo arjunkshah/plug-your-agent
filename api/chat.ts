@@ -1,6 +1,13 @@
+type DocPage = {
+  url: string;
+  title: string;
+  wordCount: number;
+};
+
 type DocStore = {
   url: string;
   chunks: string[];
+  pages: DocPage[];
   updatedAt: number;
 };
 
@@ -66,7 +73,7 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const { siteUrl, messages } = req.body ?? {};
+  const { siteUrl, messages, stream, siteKey } = req.body ?? {};
   if (!siteUrl || typeof siteUrl !== "string") {
     res.status(400).json({ error: "Missing siteUrl" });
     return;
@@ -81,7 +88,7 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const key = new URL(siteUrl).hostname;
+  const key = siteKey && typeof siteKey === "string" ? siteKey : new URL(siteUrl).hostname;
   const docStore = store.get(key);
   const context = docStore ? buildContext(docStore.chunks, userMessage) : "";
 
@@ -90,8 +97,9 @@ export default async function handler(req: any, res: any) {
     "If the answer is not in the context, say you could not find it on the site.";
 
   const payload = {
-    model: "llama-3.1-8b-instant",
+    model: process.env.GROQ_MODEL || "llama-3.1-8b-instant",
     temperature: 0.3,
+    stream: Boolean(stream),
     messages: [
       { role: "system", content: systemPrompt },
       { role: "system", content: `Context:\n${context || "No context available."}` },
@@ -112,6 +120,61 @@ export default async function handler(req: any, res: any) {
     if (!response.ok) {
       const detail = await response.text();
       res.status(500).json({ error: `Groq error: ${detail}` });
+      return;
+    }
+
+    if (payload.stream) {
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache, no-transform");
+      res.setHeader("Connection", "keep-alive");
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        res.write(`data: ${JSON.stringify({ token: "" })}\n\n`);
+        res.write("data: [DONE]\n\n");
+        res.end();
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          break;
+        }
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        lines.forEach((line) => {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) {
+            return;
+          }
+          const data = trimmed.replace(/^data:\s*/, "");
+          if (data === "[DONE]") {
+            res.write("data: [DONE]\n\n");
+            res.end();
+            return;
+          }
+          try {
+            const payloadData = JSON.parse(data) as {
+              choices?: Array<{ delta?: { content?: string } }>;
+            };
+            const token = payloadData.choices?.[0]?.delta?.content;
+            if (token) {
+              res.write(`data: ${JSON.stringify({ token })}\n\n`);
+            }
+          } catch (_error) {
+            // Ignore parse errors.
+          }
+        });
+      }
+
+      res.write("data: [DONE]\n\n");
+      res.end();
       return;
     }
 

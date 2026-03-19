@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { AgentBar } from "@agentbar/react";
 import { createProxyProvider } from "@agentbar/runtime";
 import type { HostApi, HostApiSchema } from "@agentbar/runtime";
 
 const apiBase = import.meta.env.VITE_AGENTBAR_API_BASE || "";
+const apiBaseDisplay = apiBase || window.location.origin;
 const llmProvider = apiBase
   ? createProxyProvider({
       endpoint: `${apiBase}/api/chat`,
@@ -118,9 +120,59 @@ const hostApiSnippet = `export interface HostApi {
   suggestCopy(area: string): Promise<string>;
 }`;
 
-const embedSnippet = `<script\n  src=\"https://your-deploy-url/agentbar.js\"\n  data-site=\"https://your-site.com\"\n  data-api=\"https://your-deploy-url\"\n></script>`;
+const embedSnippet = `<script\n  src=\"https://your-deploy-url/agentbar.js\"\n  data-site=\"https://your-site.com\"\n  data-api=\"https://your-deploy-url\"\n  data-depth=\"2\"\n  data-max-pages=\"25\"\n  data-site-key=\"your-site-key\"\n></script>`;
 
 export default function App() {
+  const [statusItems, setStatusItems] = useState<
+    Array<{ key: string; url: string; pages: Array<{ url: string; title: string }> }>
+  >([]);
+  const [statusError, setStatusError] = useState("");
+  const [statusLoading, setStatusLoading] = useState(false);
+
+  const loadStatus = async () => {
+    setStatusLoading(true);
+    setStatusError("");
+    try {
+      const response = await fetch(`${apiBaseDisplay}/api/status`);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to load status");
+      }
+      setStatusItems(Array.isArray(data.items) ? data.items : []);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      setStatusError(message);
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  const reindexCurrent = async () => {
+    setStatusLoading(true);
+    setStatusError("");
+    try {
+      const response = await fetch(`${apiBaseDisplay}/api/ingest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: window.location.origin,
+          depth: 2,
+          maxPages: 25,
+          force: true,
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data?.error || "Failed to reindex");
+      }
+      await loadStatus();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      setStatusError(message);
+      setStatusLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-[100dvh] bg-slate-50 text-slate-900">
       <div className="relative overflow-hidden">
@@ -150,6 +202,7 @@ export default function App() {
               <a href="#usage" className="transition hover:text-slate-800">Usage</a>
               <a href="#embed" className="transition hover:text-slate-800">Embed</a>
               <a href="#api" className="transition hover:text-slate-800">API</a>
+              <a href="#admin" className="transition hover:text-slate-800">Admin</a>
               <a href="#security" className="transition hover:text-slate-800">Security</a>
               <button className="rounded-full border border-emerald-600/30 bg-emerald-600/10 px-4 py-1 text-xs text-emerald-700 transition hover:bg-emerald-600/20 active:translate-y-[1px]">
                 Get the package
@@ -260,10 +313,11 @@ export default function App() {
             <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-700">Docs</p>
             <a href="#install" className="block text-slate-700">Install</a>
             <a href="#usage" className="block transition hover:text-slate-700">Usage</a>
-              <a href="#embed" className="block transition hover:text-slate-700">Embed</a>
-              <a href="#api" className="block transition hover:text-slate-700">API</a>
+            <a href="#embed" className="block transition hover:text-slate-700">Embed</a>
+            <a href="#api" className="block transition hover:text-slate-700">API</a>
             <a href="#agents" className="block transition hover:text-slate-700">Default agents</a>
             <a href="#ai" className="block transition hover:text-slate-700">AI providers</a>
+            <a href="#admin" className="block transition hover:text-slate-700">Admin</a>
             <a href="#security" className="block transition hover:text-slate-700">Security model</a>
             <a href="#styling" className="block transition hover:text-slate-700">Styling</a>
             <a href="#faq" className="block transition hover:text-slate-700">FAQ</a>
@@ -299,9 +353,17 @@ export default function App() {
               <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
                 <pre className="whitespace-pre-wrap">{embedSnippet}</pre>
               </div>
+              <div className="grid gap-2 text-xs text-slate-500">
+                <span>data-depth: crawl depth (default 1).</span>
+                <span>data-max-pages: maximum pages to index (default 15).</span>
+                <span>data-site-key: host multiple sites on one backend.</span>
+                <span>data-theme-color: brand color.</span>
+                <span>data-position: left, right, or bottom.</span>
+              </div>
               <p className="text-xs text-slate-500">
                 Deploy this repo to Vercel, set GROQ_API_KEY, and the widget will use /api/chat and
-                /api/ingest automatically.
+                /api/ingest automatically. data-site-key lets you host multiple sites on one
+                backend.
               </p>
             </div>
 
@@ -376,6 +438,54 @@ const llmProvider = createProxyProvider({
   endpoint: "https://your-deploy-url/api/chat",
   siteUrl: window.location.origin,
 });`}</pre>
+              </div>
+            </div>
+
+            <div id="admin" className="space-y-4">
+              <h3 className="text-2xl font-semibold text-slate-900">Indexing console</h3>
+              <p className="text-sm text-slate-600">
+                View indexed sites and trigger a re-index. This uses the in-memory store, so data
+                resets on cold starts unless you add persistence.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={loadStatus}
+                  className="rounded-full border border-emerald-600/30 bg-emerald-600/10 px-4 py-2 text-xs text-emerald-700 transition hover:bg-emerald-600/20"
+                >
+                  {statusLoading ? "Loading..." : "Load status"}
+                </button>
+                <button
+                  type="button"
+                  onClick={reindexCurrent}
+                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700 transition hover:bg-slate-100"
+                >
+                  Reindex current site
+                </button>
+              </div>
+              {statusError ? (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700">
+                  {statusError}
+                </div>
+              ) : null}
+              <div className="space-y-3">
+                {statusItems.length === 0 ? (
+                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500">
+                    No indexed sites yet. Click \"Load status\" to check again.
+                  </div>
+                ) : (
+                  statusItems.map((item) => (
+                    <div key={item.key} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                      <p className="text-xs font-semibold text-slate-800">{item.key}</p>
+                      <p className="text-xs text-slate-500">{item.url}</p>
+                      <div className="mt-2 space-y-1 text-[11px] text-slate-600">
+                        {item.pages.slice(0, 4).map((page) => (
+                          <div key={page.url}>{page.title || page.url}</div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
