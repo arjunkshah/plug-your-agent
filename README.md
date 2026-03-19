@@ -12,7 +12,7 @@ npm install @agentbar/react @agentbar/runtime
 
 ```tsx
 import { AgentBar } from "@agentbar/react";
-import { createOpenAIProvider } from "@agentbar/runtime";
+import { createProxyProvider } from "@agentbar/runtime";
 import type { HostApi, HostApiSchema } from "@agentbar/runtime";
 
 const hostApi: HostApi = {
@@ -33,9 +33,9 @@ const apiSchema: HostApiSchema = {
   suggestCopy: { description: "Generate copy for a specific area." },
 };
 
-const llmProvider = createOpenAIProvider({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  model: "gpt-4o-mini",
+const llmProvider = createProxyProvider({
+  endpoint: "https://your-deploy-url/api/chat",
+  siteUrl: window.location.origin,
 });
 
 <AgentBar
@@ -47,12 +47,32 @@ const llmProvider = createOpenAIProvider({
 />;
 ```
 
+## One-line embed
+
+Deploy this repo to Vercel, set `GROQ_API_KEY`, and embed the widget with one script tag:
+
+```html
+<script
+  src="https://your-deploy-url/agentbar.js"
+  data-site="https://your-site.com"
+  data-api="https://your-deploy-url"
+></script>
+```
+
+The embed script calls `/api/ingest` to scrape your site and `/api/chat` to run Groq inference.
+
 ## Documentation Site
 
 The demo app doubles as the documentation site. Run it locally and use it as a reference implementation:
 
 ```bash
 npm run dev
+```
+
+If you want the demo widget to call your deployed Groq proxy, set:
+
+```
+VITE_AGENTBAR_API_BASE=https://your-deploy-url
 ```
 
 ## Built-in Agents
@@ -108,15 +128,23 @@ export interface HostApi {
 
 ## AI Providers
 
-The runtime ships with a mocked LLM fallback, and you can plug in a real provider when you are ready:
+The runtime ships with a mocked LLM fallback, and you can plug in a proxy provider when you are ready:
 
 ```ts
-import { createOpenAIProvider } from "@agentbar/runtime";
+import { createProxyProvider } from "@agentbar/runtime";
 
-const llmProvider = createOpenAIProvider({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  model: "gpt-4o-mini",
+const llmProvider = createProxyProvider({
+  endpoint: "https://your-deploy-url/api/chat",
+  siteUrl: window.location.origin,
 });
+```
+
+## Groq API
+
+The one-line embed uses Groq via the `/api/chat` route. Set this in your Vercel project:
+
+```
+GROQ_API_KEY=your-key
 ```
 
 ## Publishing

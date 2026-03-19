@@ -75,6 +75,12 @@ export interface OpenAIProviderOptions {
   baseUrl?: string;
 }
 
+export interface ProxyProviderOptions {
+  endpoint: string;
+  siteUrl?: string;
+  headers?: Record<string, string>;
+}
+
 export const createOpenAIProvider = ({
   apiKey,
   model = "gpt-4o-mini",
@@ -105,6 +111,38 @@ export const createOpenAIProvider = ({
       };
 
       return data.choices?.[0]?.message?.content?.trim() ?? "";
+    },
+  };
+};
+
+export const createProxyProvider = ({
+  endpoint,
+  siteUrl,
+  headers,
+}: ProxyProviderOptions): LLMProvider => {
+  return {
+    generate: async ({ messages }) => {
+      const resolvedSiteUrl =
+        siteUrl ?? (typeof window !== "undefined" ? window.location.origin : undefined);
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(headers ?? {}),
+        },
+        body: JSON.stringify({
+          siteUrl: resolvedSiteUrl,
+          messages,
+        }),
+      });
+
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(`Proxy error: ${response.status} ${detail}`);
+      }
+
+      const data = (await response.json()) as { content?: string };
+      return data.content?.trim() ?? "";
     },
   };
 };

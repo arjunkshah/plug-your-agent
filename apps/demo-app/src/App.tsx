@@ -1,12 +1,12 @@
 import { AgentBar } from "@agentbar/react";
-import { createOpenAIProvider } from "@agentbar/runtime";
+import { createProxyProvider } from "@agentbar/runtime";
 import type { HostApi, HostApiSchema } from "@agentbar/runtime";
 
-const hasAiKey = Boolean(import.meta.env.VITE_OPENAI_API_KEY);
-const llmProvider = hasAiKey
-  ? createOpenAIProvider({
-      apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-      model: "gpt-4o-mini",
+const apiBase = import.meta.env.VITE_AGENTBAR_API_BASE || "";
+const llmProvider = apiBase
+  ? createProxyProvider({
+      endpoint: `${apiBase}/api/chat`,
+      siteUrl: window.location.origin,
     })
   : undefined;
 
@@ -94,10 +94,11 @@ const apiSchema: HostApiSchema = {
 };
 
 const quickstart = `import { AgentBar } from "@agentbar/react";
-import { createOpenAIProvider } from "@agentbar/runtime";
+import { createProxyProvider } from "@agentbar/runtime";
 
-const llmProvider = createOpenAIProvider({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+const llmProvider = createProxyProvider({
+  endpoint: "https://your-deploy-url/api/chat",
+  siteUrl: window.location.origin,
 });
 
 <AgentBar
@@ -116,6 +117,8 @@ const hostApiSnippet = `export interface HostApi {
   getPageContext(): Promise<{ pageName: string; hints: string[] }>;
   suggestCopy(area: string): Promise<string>;
 }`;
+
+const embedSnippet = `<script\n  src=\"https://your-deploy-url/agentbar.js\"\n  data-site=\"https://your-site.com\"\n  data-api=\"https://your-deploy-url\"\n></script>`;
 
 export default function App() {
   return (
@@ -145,6 +148,7 @@ export default function App() {
             <nav className="hidden items-center gap-6 text-xs text-slate-500 md:flex">
               <a href="#install" className="transition hover:text-slate-800">Install</a>
               <a href="#usage" className="transition hover:text-slate-800">Usage</a>
+              <a href="#embed" className="transition hover:text-slate-800">Embed</a>
               <a href="#api" className="transition hover:text-slate-800">API</a>
               <a href="#security" className="transition hover:text-slate-800">Security</a>
               <button className="rounded-full border border-emerald-600/30 bg-emerald-600/10 px-4 py-1 text-xs text-emerald-700 transition hover:bg-emerald-600/20 active:translate-y-[1px]">
@@ -161,7 +165,7 @@ export default function App() {
                 className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-slate-500"
                 style={{ animationDelay: "40ms" }}
               >
-                {hasAiKey ? "AI provider connected" : "AI provider in mock mode"}
+                {apiBase ? "Groq proxy connected" : "AI provider in mock mode"}
               </div>
               <h1
                 className="animate-fade-up text-4xl font-semibold tracking-tight text-slate-900 md:text-5xl"
@@ -196,8 +200,8 @@ export default function App() {
                 <pre className="mt-3 whitespace-pre-wrap text-xs text-slate-700">{quickstart}</pre>
               </div>
               <p className="animate-fade-up text-xs text-slate-500" style={{ animationDelay: "440ms" }}>
-                Set <span className="text-slate-700">VITE_OPENAI_API_KEY</span> to enable the live
-                provider. Without it, the runtime uses local fallback behavior.
+                Set <span className="text-slate-700">VITE_AGENTBAR_API_BASE</span> to point at your
+                deployed API. Without it, the runtime uses local fallback behavior.
               </p>
             </div>
 
@@ -256,7 +260,8 @@ export default function App() {
             <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-700">Docs</p>
             <a href="#install" className="block text-slate-700">Install</a>
             <a href="#usage" className="block transition hover:text-slate-700">Usage</a>
-            <a href="#api" className="block transition hover:text-slate-700">API</a>
+              <a href="#embed" className="block transition hover:text-slate-700">Embed</a>
+              <a href="#api" className="block transition hover:text-slate-700">API</a>
             <a href="#agents" className="block transition hover:text-slate-700">Default agents</a>
             <a href="#ai" className="block transition hover:text-slate-700">AI providers</a>
             <a href="#security" className="block transition hover:text-slate-700">Security model</a>
@@ -283,6 +288,21 @@ export default function App() {
               <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
                 <pre className="whitespace-pre-wrap">{quickstart}</pre>
               </div>
+            </div>
+
+            <div id="embed" className="space-y-4">
+              <h3 className="text-2xl font-semibold text-slate-900">One-line embed</h3>
+              <p className="text-sm text-slate-600">
+                Drop this script tag into any site. It auto-scrapes the page and calls the Groq
+                powered chat endpoint you deploy with this repo.
+              </p>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
+                <pre className="whitespace-pre-wrap">{embedSnippet}</pre>
+              </div>
+              <p className="text-xs text-slate-500">
+                Deploy this repo to Vercel, set GROQ_API_KEY, and the widget will use /api/chat and
+                /api/ingest automatically.
+              </p>
             </div>
 
             <div id="api" className="space-y-4">
@@ -346,15 +366,15 @@ export default function App() {
             <div id="ai" className="space-y-4">
               <h3 className="text-2xl font-semibold text-slate-900">AI providers</h3>
               <p className="text-sm text-slate-600">
-                Plug in the OpenAI provider when you are ready. The runtime falls back to a local
+                Use the Groq proxy provider when you are ready. The runtime falls back to a local
                 heuristic when no provider is supplied.
               </p>
               <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
-                <pre className="whitespace-pre-wrap">{`import { createOpenAIProvider } from "@agentbar/runtime";
+                <pre className="whitespace-pre-wrap">{`import { createProxyProvider } from "@agentbar/runtime";
 
-const llmProvider = createOpenAIProvider({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  model: "gpt-4o-mini",
+const llmProvider = createProxyProvider({
+  endpoint: "https://your-deploy-url/api/chat",
+  siteUrl: window.location.origin,
 });`}</pre>
               </div>
             </div>

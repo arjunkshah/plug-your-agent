@@ -9,5 +9,6 @@ export type {
   ToolDefinition,
   LLMProvider,
   LLMMessage,
+  ProxyProviderOptions,
 } from "@agentbar/runtime";
-export { createOpenAIProvider } from "@agentbar/runtime";
+export { createOpenAIProvider, createProxyProvider } from "@agentbar/runtime";
