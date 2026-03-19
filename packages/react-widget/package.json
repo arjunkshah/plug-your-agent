@@ -34,7 +34,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@agentbar/runtime": "file:../agent-runtime",
+    "@agentbar/runtime": "^0.1.0",
     "@phosphor-icons/react": "^2.1.7"
   },
   "peerDependencies": {
