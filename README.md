@@ -67,6 +67,12 @@ const llmProvider = createProxyProvider({
     panelRadius: "18px",
     dockRadius: "16px",
     fontFamily: "Satoshi, ui-sans-serif",
+    userBubbleBackground: "rgba(14,165,233,0.12)",
+    userBubbleText: "#0f172a",
+    assistantBubbleBackground: "#f8fafc",
+    assistantBubbleText: "#0f172a",
+    panelShadow: "0 30px 70px -50px rgba(15,23,42,0.35)",
+    dockShadow: "0 20px 50px -40px rgba(15,23,42,0.25)",
   }}
   inputPlaceholder="Ask about this page"
   suggestions={["Search pricing", "Summarize docs", "Draft marketing copy"]}
@@ -74,6 +80,7 @@ const llmProvider = createProxyProvider({
   showReset={true}
   persist={true}
   badgeLabel="AI"
+  closeOnEscape={true}
   position="right"
   llmProvider={llmProvider}
 />;
@@ -125,6 +132,12 @@ agentbar snippet
 - `data-badge-label` - optional launcher badge label.
 - `data-badge-background` - badge background color.
 - `data-badge-text-color` - badge text color.
+- `data-user-bubble-background` - user message bubble background.
+- `data-user-bubble-text` - user message text color.
+- `data-user-bubble-border` - user message border color.
+- `data-assistant-bubble-background` - assistant bubble background.
+- `data-assistant-bubble-text` - assistant message text color.
+- `data-assistant-bubble-border` - assistant bubble border color.
 - `data-panel-width` - panel width (e.g. `360px`).
 - `data-panel-max-height` - panel max height (e.g. `70vh`).
 - `data-panel-radius` - panel corner radius (e.g. `18px`).
@@ -140,6 +153,10 @@ agentbar snippet
 - `data-button-label` - optional launcher label (defaults to icon only).
 - `data-position` - `left`, `right`, or `bottom`.
 - `data-open` - `true` to open on load.
+- `data-draggable` - `true` to drag the launcher vertically.
+- `data-drag-offset` - initial vertical offset in px.
+- `data-persist-position` - `true` to persist drag position.
+- `data-position-key` - override drag position storage key.
 - `data-show-reset` - `true` to show a reset button.
 - `data-persist` - `true` to persist messages in localStorage.
 - `data-storage-key` - override localStorage key.

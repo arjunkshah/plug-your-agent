@@ -30,6 +30,7 @@ export type AgentBarProps = {
   persist?: boolean;
   storageKey?: string;
   badgeLabel?: string;
+  closeOnEscape?: boolean;
   theme?: {
     accent?: string;
     background?: string;
@@ -39,6 +40,14 @@ export type AgentBarProps = {
     panelRadius?: string;
     dockRadius?: string;
     fontFamily?: string;
+    userBubbleBackground?: string;
+    userBubbleText?: string;
+    userBubbleBorder?: string;
+    assistantBubbleBackground?: string;
+    assistantBubbleText?: string;
+    assistantBubbleBorder?: string;
+    dockShadow?: string;
+    panelShadow?: string;
   };
 };
 
@@ -104,6 +113,7 @@ export const AgentBar: React.FC<AgentBarProps> = ({
   persist = false,
   storageKey,
   badgeLabel,
+  closeOnEscape = true,
   theme,
 }) => {
   const enabledPlugins = useMemo(() => {
@@ -201,6 +211,19 @@ export const AgentBar: React.FC<AgentBarProps> = ({
     return () => document.removeEventListener("click", handleOutsideClick);
   }, [closeOnOutsideClick]);
 
+  useEffect(() => {
+    if (!closeOnEscape) {
+      return;
+    }
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [closeOnEscape]);
+
   const getSession = (plugin: AgentPlugin) => {
     if (!sessionMap.current.has(plugin.id)) {
       sessionMap.current.set(plugin.id, createAgentSession(plugin, hostApi, { llmProvider }));
@@ -245,6 +268,12 @@ export const AgentBar: React.FC<AgentBarProps> = ({
   const themeVars = useMemo(
     () => {
       const accent = theme?.accent ?? "#059669";
+      const userBg = theme?.userBubbleBackground ?? toRgba(accent, 0.12);
+      const userText = theme?.userBubbleText ?? accent;
+      const userBorder = theme?.userBubbleBorder ?? toRgba(accent, 0.3);
+      const assistantBg = theme?.assistantBubbleBackground ?? "#f8fafc";
+      const assistantText = theme?.assistantBubbleText ?? (theme?.text ?? "#0f172a");
+      const assistantBorder = theme?.assistantBubbleBorder ?? (theme?.border ?? "rgba(226,232,240,0.8)");
       return {
         "--agentbar-accent": accent,
         "--agentbar-accent-soft": toRgba(accent, 0.12),
@@ -256,11 +285,19 @@ export const AgentBar: React.FC<AgentBarProps> = ({
         "--agentbar-border": theme?.border ?? "rgba(226,232,240,0.8)",
         "--agentbar-panel-radius": theme?.panelRadius ?? "16px",
         "--agentbar-dock-radius": theme?.dockRadius ?? "16px",
+        "--agentbar-user-bg": userBg,
+        "--agentbar-user-text": userText,
+        "--agentbar-user-border": userBorder,
+        "--agentbar-assistant-bg": assistantBg,
+        "--agentbar-assistant-text": assistantText,
+        "--agentbar-assistant-border": assistantBorder,
         fontFamily: theme?.fontFamily ?? "inherit",
       };
     },
     [theme]
   ) as React.CSSProperties;
+
+  const dockStyle = theme?.dockShadow ? { ...themeVars, boxShadow: theme.dockShadow } : themeVars;
 
   const stopDrag = useCallback(() => {
     dragState.current = null;
@@ -392,7 +429,7 @@ export const AgentBar: React.FC<AgentBarProps> = ({
     <>
       <div ref={dockRef} className={`fixed ${dockPosition} z-30 pointer-events-none`}>
         <div
-          style={themeVars}
+          style={dockStyle}
           className={`pointer-events-auto relative flex ${dockLayout} items-center gap-2 rounded-[var(--agentbar-dock-radius)] border border-[color:var(--agentbar-border)] bg-[color:var(--agentbar-panel-bg)] px-2 py-3 text-[color:var(--agentbar-text)] shadow-[0_20px_50px_-40px_rgba(15,23,42,0.25)] backdrop-blur`}
         >
           {badgeLabel ? (
@@ -426,7 +463,11 @@ export const AgentBar: React.FC<AgentBarProps> = ({
       {activeAgent && isOpen ? (
         <div
           ref={panelRef}
-          style={{ ...panelStyle, ...themeVars }}
+          style={{
+            ...panelStyle,
+            ...themeVars,
+            boxShadow: theme?.panelShadow,
+          }}
           className={`fixed ${panelPosition} z-20 w-[92vw] max-w-[400px] rounded-[var(--agentbar-panel-radius)] border border-[color:var(--agentbar-border)] bg-[color:var(--agentbar-panel-bg)] p-4 text-[color:var(--agentbar-text)] shadow-[0_35px_70px_-50px_rgba(15,23,42,0.35)] backdrop-blur sm:w-[400px]`}
         >
           <div
@@ -557,8 +598,8 @@ export const AgentBar: React.FC<AgentBarProps> = ({
                       <div
                         className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
                           step.role === "user"
-                          ? "border border-[color:var(--agentbar-accent-border)] bg-[color:var(--agentbar-accent-soft)] text-[color:var(--agentbar-accent)]"
-                          : "border border-[color:var(--agentbar-border)] bg-slate-50 text-[color:var(--agentbar-text)]"
+                          ? "border border-[color:var(--agentbar-user-border)] bg-[color:var(--agentbar-user-bg)] text-[color:var(--agentbar-user-text)]"
+                          : "border border-[color:var(--agentbar-assistant-border)] bg-[color:var(--agentbar-assistant-bg)] text-[color:var(--agentbar-assistant-text)]"
                       }`}
                     >
                       <pre className="whitespace-pre-wrap font-sans">{step.content}</pre>

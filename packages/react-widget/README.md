@@ -27,6 +27,12 @@ import { AgentBar } from "@arjun-shah/agentbar-react";
     panelRadius: "18px",
     dockRadius: "16px",
     fontFamily: "Satoshi, ui-sans-serif",
+    userBubbleBackground: "rgba(14,165,233,0.12)",
+    userBubbleText: "#0f172a",
+    assistantBubbleBackground: "#f8fafc",
+    assistantBubbleText: "#0f172a",
+    panelShadow: "0 30px 70px -50px rgba(15,23,42,0.35)",
+    dockShadow: "0 20px 50px -40px rgba(15,23,42,0.25)",
   }}
   openOnLoad={true}
   closeOnOutsideClick={true}
@@ -36,6 +42,7 @@ import { AgentBar } from "@arjun-shah/agentbar-react";
   showReset={true}
   persist={true}
   badgeLabel="AI"
+  closeOnEscape={true}
 />;
 ```
 

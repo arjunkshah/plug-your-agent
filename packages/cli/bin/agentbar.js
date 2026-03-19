@@ -29,6 +29,12 @@ const DEFAULT_CONFIG = {
   badgeLabel: "",
   badgeBackground: "",
   badgeTextColor: "",
+  userBubbleBackground: "",
+  userBubbleText: "",
+  userBubbleBorder: "",
+  assistantBubbleBackground: "",
+  assistantBubbleText: "",
+  assistantBubbleBorder: "",
   panelWidth: "320px",
   panelMaxHeight: "70vh",
   panelRadius: "16px",
@@ -39,6 +45,10 @@ const DEFAULT_CONFIG = {
   sendLabel: "Send",
   suggestions: ["Search pricing", "Explain a feature", "Draft homepage copy"],
   greeting: "",
+  draggable: true,
+  dragOffset: 0,
+  persistPosition: false,
+  positionKey: "",
   openOnLoad: false,
   autoIngest: true,
   closeOnOutsideClick: true,
@@ -132,6 +142,24 @@ const renderSnippet = (config) => {
   if (config.badgeTextColor) {
     lines.push(`  data-badge-text-color=\"${config.badgeTextColor}\"`);
   }
+  if (config.userBubbleBackground) {
+    lines.push(`  data-user-bubble-background=\"${config.userBubbleBackground}\"`);
+  }
+  if (config.userBubbleText) {
+    lines.push(`  data-user-bubble-text=\"${config.userBubbleText}\"`);
+  }
+  if (config.userBubbleBorder) {
+    lines.push(`  data-user-bubble-border=\"${config.userBubbleBorder}\"`);
+  }
+  if (config.assistantBubbleBackground) {
+    lines.push(`  data-assistant-bubble-background=\"${config.assistantBubbleBackground}\"`);
+  }
+  if (config.assistantBubbleText) {
+    lines.push(`  data-assistant-bubble-text=\"${config.assistantBubbleText}\"`);
+  }
+  if (config.assistantBubbleBorder) {
+    lines.push(`  data-assistant-bubble-border=\"${config.assistantBubbleBorder}\"`);
+  }
   if (config.panelWidth) {
     lines.push(`  data-panel-width=\"${config.panelWidth}\"`);
   }
@@ -161,6 +189,18 @@ const renderSnippet = (config) => {
   }
   if (config.greeting) {
     lines.push(`  data-greeting=\"${config.greeting}\"`);
+  }
+  if (typeof config.draggable === "boolean") {
+    lines.push(`  data-draggable=\"${config.draggable}\"`);
+  }
+  if (typeof config.dragOffset === "number" && config.dragOffset !== 0) {
+    lines.push(`  data-drag-offset=\"${config.dragOffset}\"`);
+  }
+  if (typeof config.persistPosition === "boolean") {
+    lines.push(`  data-persist-position=\"${config.persistPosition}\"`);
+  }
+  if (config.positionKey) {
+    lines.push(`  data-position-key=\"${config.positionKey}\"`);
   }
   if (config.openOnLoad) {
     lines.push(`  data-open=\"${config.openOnLoad}\"`);
@@ -206,13 +246,19 @@ const printHelp = () => {
     "  buttonBackground, buttonTextColor, accentTextColor, buttonShadow, panelShadow, badgeLabel,"
   );
   console.log(
-    "  badgeBackground, badgeTextColor, panelWidth, panelMaxHeight, panelRadius,"
+    "  badgeBackground, badgeTextColor, userBubbleBackground, userBubbleText, userBubbleBorder,"
   );
   console.log(
-    "  offsetX, offsetY, inputPlaceholder, sendLabel, suggestions, openOnLoad, autoIngest,"
+    "  assistantBubbleBackground, assistantBubbleText, assistantBubbleBorder, panelWidth, panelMaxHeight,"
   );
   console.log(
-    "  greeting, showReset, persist, storageKey, showTypingIndicator, closeOnOutsideClick\n"
+    "  panelRadius, buttonRadius, offsetX, offsetY, inputPlaceholder, sendLabel, suggestions,"
+  );
+  console.log(
+    "  greeting, draggable, dragOffset, persistPosition, positionKey, openOnLoad, autoIngest,"
+  );
+  console.log(
+    "  showReset, persist, storageKey, showTypingIndicator, closeOnOutsideClick\n"
   );
   console.log(`Config file: ${configPath}`);
 };
@@ -259,6 +305,10 @@ const init = async () => {
       .map((value) => value.trim())
       .filter(Boolean);
     config.greeting = await ask(rl, "Greeting (optional)", config.greeting);
+    config.draggable =
+      (await ask(rl, "Draggable launcher (true/false)", String(config.draggable))) === "true";
+    config.persistPosition =
+      (await ask(rl, "Persist position (true/false)", String(config.persistPosition))) === "true";
     config.openOnLoad = (await ask(rl, "Open on load (true/false)", String(config.openOnLoad))) === "true";
     config.showReset = (await ask(rl, "Show reset button (true/false)", String(config.showReset))) === "true";
     config.persist = (await ask(rl, "Persist chat (true/false)", String(config.persist))) === "true";
@@ -310,9 +360,18 @@ const setValue = (key, value) => {
     key === "closeOnOutsideClick" ||
     key === "showReset" ||
     key === "persist" ||
-    key === "showTypingIndicator"
+    key === "showTypingIndicator" ||
+    key === "draggable" ||
+    key === "persistPosition"
   ) {
     config[key] = value === "true" || value === true;
+  } else if (key === "dragOffset") {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      console.error(`${key} must be a number.`);
+      process.exit(1);
+    }
+    config[key] = parsed;
   } else if (key === "suggestions") {
     config[key] = String(value)
       .split(/[|,]/)

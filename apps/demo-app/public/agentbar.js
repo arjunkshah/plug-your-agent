@@ -126,6 +126,25 @@
   const accentSoft = toRgba(themeColor, 0.12);
   const accentBorder = toRgba(themeColor, 0.3);
   const accentStrong = toRgba(themeColor, 0.2);
+  const userBubbleBackground =
+    config.userBubbleBackground || script?.dataset.userBubbleBackground || accentSoft;
+  const userBubbleText = config.userBubbleText || script?.dataset.userBubbleText || accentTextColor;
+  const userBubbleBorder =
+    config.userBubbleBorder || script?.dataset.userBubbleBorder || accentBorder;
+  const assistantBubbleBackground =
+    config.assistantBubbleBackground || script?.dataset.assistantBubbleBackground || "#f8fafc";
+  const assistantBubbleText =
+    config.assistantBubbleText || script?.dataset.assistantBubbleText || textColor;
+  const assistantBubbleBorder =
+    config.assistantBubbleBorder || script?.dataset.assistantBubbleBorder || borderColor;
+  const draggable = toBoolean(config.draggable ?? script?.dataset.draggable, true);
+  const persistPosition = toBoolean(
+    config.persistPosition ?? script?.dataset.persistPosition,
+    persist
+  );
+  const positionKey =
+    config.positionKey || script?.dataset.positionKey || `${storageKey}:position`;
+  const dragOffset = toNumber(config.dragOffset ?? script?.dataset.dragOffset, 0);
   const bubbleIcon = `
     <svg class="agentbar-icon" viewBox="0 0 24 24" aria-hidden="true">
       <path
@@ -148,8 +167,8 @@
   const styles = `
     :host { all: initial; }
     .agentbar-root { position: fixed; z-index: 2147483646; font-family: var(--agentbar-font); color: var(--agentbar-text); }
-    .agentbar-root.right { right: var(--agentbar-offset-x); top: 50%; transform: translateY(-50%); }
-    .agentbar-root.left { left: var(--agentbar-offset-x); top: 50%; transform: translateY(-50%); }
+    .agentbar-root.right { right: var(--agentbar-offset-x); top: calc(50% + var(--agentbar-drag-offset, 0px)); transform: translateY(-50%); }
+    .agentbar-root.left { left: var(--agentbar-offset-x); top: calc(50% + var(--agentbar-drag-offset, 0px)); transform: translateY(-50%); }
     .agentbar-root.bottom { left: 50%; bottom: var(--agentbar-offset-y); transform: translateX(-50%); }
     .agentbar-button { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 48px; height: 48px; padding: 0 14px; border-radius: var(--agentbar-button-radius); border: 1px solid var(--agentbar-border); background: var(--agentbar-button-bg); cursor: pointer; font-size: 12px; color: var(--agentbar-button-text); box-shadow: var(--agentbar-button-shadow); transition: transform 0.2s ease, box-shadow 0.2s ease; }
     .agentbar-button:active { transform: translateY(1px); }
@@ -162,6 +181,8 @@
     .agentbar-panel.left { left: 64px; right: auto; }
     .agentbar-panel.bottom { left: 50%; bottom: calc(var(--agentbar-offset-y) + 64px); right: auto; top: auto; transform: translateX(-50%); }
     .agentbar-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--agentbar-border); font-size: 13px; color: var(--agentbar-text); }
+    .agentbar-header.draggable { cursor: grab; }
+    .agentbar-header.draggable:active { cursor: grabbing; }
     .agentbar-title { font-weight: 600; }
     .agentbar-subtitle { font-size: 11px; color: var(--agentbar-muted); margin-top: 2px; }
     .agentbar-body { padding: 12px 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
@@ -170,8 +191,8 @@
     .agentbar-empty-subtitle { font-size: 11px; color: var(--agentbar-muted); margin-top: 4px; }
     .agentbar-suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
     .agentbar-suggestion { border: 1px solid var(--agentbar-border); background: #ffffff; color: var(--agentbar-text); border-radius: 999px; padding: 6px 10px; font-size: 11px; cursor: pointer; }
-    .agentbar-message { padding: 8px 10px; border-radius: 12px; font-size: 12px; line-height: 1.5; border: 1px solid var(--agentbar-border); background: #f8fafc; color: var(--agentbar-text); white-space: pre-wrap; }
-    .agentbar-message.user { border-color: var(--agentbar-accent-border); background: var(--agentbar-accent-soft); color: var(--agentbar-accent-text); }
+    .agentbar-message { padding: 8px 10px; border-radius: 12px; font-size: 12px; line-height: 1.5; border: 1px solid var(--agentbar-assistant-border); background: var(--agentbar-assistant-bg); color: var(--agentbar-assistant-text); white-space: pre-wrap; }
+    .agentbar-message.user { border-color: var(--agentbar-user-border); background: var(--agentbar-user-bg); color: var(--agentbar-user-text); }
     .agentbar-typing { display: flex; gap: 4px; align-items: center; }
     .agentbar-typing span { width: 6px; height: 6px; border-radius: 999px; background: var(--agentbar-muted); opacity: 0.4; animation: agentbar-dot 1.1s infinite; }
     .agentbar-typing span:nth-child(2) { animation-delay: 0.2s; }
@@ -224,6 +245,7 @@
   const openButton = shadow.querySelector(".agentbar-button");
   const closeButton = shadow.querySelector(".agentbar-close");
   const resetButton = shadow.querySelector(".agentbar-reset");
+  const header = shadow.querySelector(".agentbar-header");
 
   if (!root || !panel || !body || !status || !input || !send || !openButton || !closeButton) {
     return;
@@ -272,6 +294,12 @@
   root.style.setProperty("--agentbar-panel-shadow", panelShadow);
   root.style.setProperty("--agentbar-badge-bg", badgeBackground);
   root.style.setProperty("--agentbar-badge-text", badgeTextColor);
+  root.style.setProperty("--agentbar-user-bg", userBubbleBackground);
+  root.style.setProperty("--agentbar-user-text", userBubbleText);
+  root.style.setProperty("--agentbar-user-border", userBubbleBorder);
+  root.style.setProperty("--agentbar-assistant-bg", assistantBubbleBackground);
+  root.style.setProperty("--agentbar-assistant-text", assistantBubbleText);
+  root.style.setProperty("--agentbar-assistant-border", assistantBubbleBorder);
   root.style.setProperty("--agentbar-panel-width", panelWidth);
   root.style.setProperty("--agentbar-panel-max-height", panelMaxHeight);
   root.style.setProperty("--agentbar-panel-radius", panelRadius);
@@ -285,6 +313,28 @@
     ingested: false,
     loading: false,
     greeted: false,
+  };
+
+  let dragOffsetY = dragOffset;
+  const clampOffset = (value) => {
+    const rootHeight = root.getBoundingClientRect().height || 48;
+    const minTop = 12 + rootHeight / 2;
+    const maxTop = window.innerHeight - 12 - rootHeight / 2;
+    const desiredTop = window.innerHeight / 2 + value;
+    const clampedTop = Math.min(Math.max(desiredTop, minTop), maxTop);
+    return clampedTop - window.innerHeight / 2;
+  };
+
+  const applyDragOffset = (value) => {
+    dragOffsetY = clampOffset(value);
+    root.style.setProperty("--agentbar-drag-offset", `${dragOffsetY}px`);
+    if (persistPosition) {
+      try {
+        localStorage.setItem(positionKey, String(dragOffsetY));
+      } catch (_error) {
+        // ignore
+      }
+    }
   };
 
   const loadPersisted = () => {
@@ -306,6 +356,24 @@
     }
   };
 
+  const loadPersistedPosition = () => {
+    if (!persistPosition) {
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(positionKey);
+      if (raw == null) {
+        return;
+      }
+      const parsed = Number(raw);
+      if (Number.isFinite(parsed)) {
+        dragOffsetY = parsed;
+      }
+    } catch (_error) {
+      // ignore
+    }
+  };
+
   const savePersisted = () => {
     if (!persist) {
       return;
@@ -321,6 +389,8 @@
   };
 
   loadPersisted();
+  loadPersistedPosition();
+  applyDragOffset(dragOffsetY);
 
   const setOpen = (value) => {
     state.open = value;
@@ -537,3 +607,31 @@
     ingest();
   }
 })();
+  if (draggable && header && (position === "left" || position === "right")) {
+    header.classList.add("draggable");
+  }
+  const dragState = { active: false, startY: 0, startOffset: 0 };
+  const handlePointerMove = (event) => {
+    if (!dragState.active) {
+      return;
+    }
+    const nextOffset = dragState.startOffset + (event.clientY - dragState.startY);
+    applyDragOffset(nextOffset);
+  };
+  const stopDragging = () => {
+    dragState.active = false;
+    document.removeEventListener("pointermove", handlePointerMove);
+    document.removeEventListener("pointerup", stopDragging);
+  };
+
+  if (draggable && header && (position === "left" || position === "right")) {
+    header.addEventListener("pointerdown", (event) => {
+      dragState.active = true;
+      dragState.startY = event.clientY;
+      dragState.startOffset = dragOffsetY;
+      document.addEventListener("pointermove", handlePointerMove);
+      document.addEventListener("pointerup", stopDragging);
+    });
+  }
+
+  window.addEventListener("resize", () => applyDragOffset(dragOffsetY));
