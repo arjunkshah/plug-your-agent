@@ -70,6 +70,10 @@ const llmProvider = createProxyProvider({
   }}
   inputPlaceholder="Ask about this page"
   suggestions={["Search pricing", "Summarize docs", "Draft marketing copy"]}
+  greeting="Welcome back. How can I help?"
+  showReset={true}
+  persist={true}
+  badgeLabel="AI"
   position="right"
   llmProvider={llmProvider}
 />;
@@ -118,6 +122,9 @@ agentbar snippet
 - `data-accent-text-color` - user message text color.
 - `data-button-shadow` - custom launcher shadow.
 - `data-panel-shadow` - custom panel shadow.
+- `data-badge-label` - optional launcher badge label.
+- `data-badge-background` - badge background color.
+- `data-badge-text-color` - badge text color.
 - `data-panel-width` - panel width (e.g. `360px`).
 - `data-panel-max-height` - panel max height (e.g. `70vh`).
 - `data-panel-radius` - panel corner radius (e.g. `18px`).
@@ -127,11 +134,16 @@ agentbar snippet
 - `data-input-placeholder` - input placeholder copy.
 - `data-send-label` - send button label.
 - `data-suggestions` - pipe or comma separated suggested prompts.
+- `data-greeting` - assistant greeting message shown on open.
 - `data-title` - widget title.
 - `data-subtitle` - widget subtitle.
 - `data-button-label` - optional launcher label (defaults to icon only).
 - `data-position` - `left`, `right`, or `bottom`.
 - `data-open` - `true` to open on load.
+- `data-show-reset` - `true` to show a reset button.
+- `data-persist` - `true` to persist messages in localStorage.
+- `data-storage-key` - override localStorage key.
+- `data-show-typing-indicator` - `true` to show typing dots.
 - `data-auto-ingest` - `true` to auto-index on load.
 - `data-close-on-outside-click` - `true` to close when clicking outside.
 

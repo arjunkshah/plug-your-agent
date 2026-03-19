@@ -25,6 +25,11 @@ export type AgentBarProps = {
   inputPlaceholder?: string;
   sendLabel?: string;
   suggestions?: string[];
+  greeting?: string;
+  showReset?: boolean;
+  persist?: boolean;
+  storageKey?: string;
+  badgeLabel?: string;
   theme?: {
     accent?: string;
     background?: string;
@@ -94,6 +99,11 @@ export const AgentBar: React.FC<AgentBarProps> = ({
   inputPlaceholder,
   sendLabel = "Send message",
   suggestions,
+  greeting,
+  showReset = false,
+  persist = false,
+  storageKey,
+  badgeLabel,
   theme,
 }) => {
   const enabledPlugins = useMemo(() => {
@@ -111,6 +121,8 @@ export const AgentBar: React.FC<AgentBarProps> = ({
   const [panelOffsetY, setPanelOffsetY] = useState(0);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const dockRef = useRef<HTMLDivElement | null>(null);
+  const hydratedRef = useRef(false);
+  const greetedRef = useRef(new Set<string>());
   const dragState = useRef<{ startY: number; startOffset: number } | null>(null);
 
   const sessionMap = useRef(new Map<string, ReturnType<typeof createAgentSession>>());
@@ -129,6 +141,43 @@ export const AgentBar: React.FC<AgentBarProps> = ({
   useEffect(() => {
     sessionMap.current.clear();
   }, [hostApi, llmProvider]);
+
+  useEffect(() => {
+    if (!persist || hydratedRef.current || typeof window === "undefined") {
+      return;
+    }
+    const key = storageKey ?? `agentbar:${window.location.host}`;
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) {
+        hydratedRef.current = true;
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      if (parsed?.messages && typeof parsed.messages === "object") {
+        setMessages(parsed.messages);
+      }
+      if (typeof parsed.open === "boolean") {
+        setIsOpen(parsed.open);
+      }
+    } catch (_error) {
+      // ignore
+    } finally {
+      hydratedRef.current = true;
+    }
+  }, [persist, storageKey]);
+
+  useEffect(() => {
+    if (!persist || !hydratedRef.current || typeof window === "undefined") {
+      return;
+    }
+    const key = storageKey ?? `agentbar:${window.location.host}`;
+    try {
+      window.localStorage.setItem(key, JSON.stringify({ messages, open: isOpen }));
+    } catch (_error) {
+      // ignore
+    }
+  }, [persist, storageKey, messages, isOpen]);
 
   useEffect(() => {
     setPanelOffsetY(0);
@@ -289,6 +338,26 @@ export const AgentBar: React.FC<AgentBarProps> = ({
     }));
   };
 
+  useEffect(() => {
+    if (!greeting || !activeAgent || !isOpen) {
+      return;
+    }
+    if (greetedRef.current.has(activeAgent.id)) {
+      return;
+    }
+    if ((messages[activeAgent.id] ?? []).length > 0) {
+      return;
+    }
+    greetedRef.current.add(activeAgent.id);
+    setMessages((prev) => ({
+      ...prev,
+      [activeAgent.id]: [
+        ...(prev[activeAgent.id] ?? []),
+        { role: "assistant", content: greeting },
+      ],
+    }));
+  }, [activeAgent, greeting, isOpen, messages]);
+
   if (!enabledPlugins.length) {
     return null;
   }
@@ -324,8 +393,13 @@ export const AgentBar: React.FC<AgentBarProps> = ({
       <div ref={dockRef} className={`fixed ${dockPosition} z-30 pointer-events-none`}>
         <div
           style={themeVars}
-          className={`pointer-events-auto flex ${dockLayout} items-center gap-2 rounded-[var(--agentbar-dock-radius)] border border-[color:var(--agentbar-border)] bg-[color:var(--agentbar-panel-bg)] px-2 py-3 text-[color:var(--agentbar-text)] shadow-[0_20px_50px_-40px_rgba(15,23,42,0.25)] backdrop-blur`}
+          className={`pointer-events-auto relative flex ${dockLayout} items-center gap-2 rounded-[var(--agentbar-dock-radius)] border border-[color:var(--agentbar-border)] bg-[color:var(--agentbar-panel-bg)] px-2 py-3 text-[color:var(--agentbar-text)] shadow-[0_20px_50px_-40px_rgba(15,23,42,0.25)] backdrop-blur`}
         >
+          {badgeLabel ? (
+            <span className="pointer-events-none absolute -top-2 -right-2 rounded-full border border-white/40 bg-[color:var(--agentbar-accent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-white">
+              {badgeLabel}
+            </span>
+          ) : null}
           {enabledPlugins.map((plugin) => {
             const Icon = getIcon(plugin);
             const isActive = plugin.id === activeAgentId && isOpen;
@@ -384,6 +458,22 @@ export const AgentBar: React.FC<AgentBarProps> = ({
                 <X size={16} />
               </button>
             </div>
+            {showReset ? (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!activeAgent) {
+                      return;
+                    }
+                    setMessages((prev) => ({ ...prev, [activeAgent.id]: [] }));
+                  }}
+                  className="rounded-full border border-[color:var(--agentbar-border)] bg-white px-3 py-1 text-[11px] text-[color:var(--agentbar-text)] transition hover:bg-slate-100 active:translate-y-[1px]"
+                >
+                  Reset
+                </button>
+              </div>
+            ) : null}
             <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-[color:var(--agentbar-muted)]">
               <span className="rounded-full border border-[color:var(--agentbar-border)] bg-slate-50 px-2 py-1">
                 Tools {activeAgent.tools.length}

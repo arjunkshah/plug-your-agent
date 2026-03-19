@@ -94,6 +94,11 @@
     config.panelShadow ||
     script?.dataset.panelShadow ||
     "0 30px 60px -45px rgba(15, 23, 42, 0.35)";
+  const badgeLabel = config.badgeLabel || script?.dataset.badgeLabel || "";
+  const badgeBackground =
+    config.badgeBackground || script?.dataset.badgeBackground || themeColor;
+  const badgeTextColor =
+    config.badgeTextColor || script?.dataset.badgeTextColor || "#ffffff";
   const panelWidth = withUnit(config.panelWidth ?? script?.dataset.panelWidth, "320px");
   const panelMaxHeight = withUnit(config.panelMaxHeight ?? script?.dataset.panelMaxHeight, "70vh");
   const panelRadius = withUnit(config.panelRadius ?? script?.dataset.panelRadius, "16px");
@@ -104,6 +109,15 @@
   const suggestions = toList(
     config.suggestions || script?.dataset.suggestions,
     ["Search pricing", "Explain a feature", "Draft homepage copy"]
+  );
+  const greeting = config.greeting || script?.dataset.greeting || "";
+  const showReset = toBoolean(config.showReset ?? script?.dataset.showReset, false);
+  const persist = toBoolean(config.persist ?? script?.dataset.persist, false);
+  const storageKey =
+    config.storageKey || script?.dataset.storageKey || `agentbar:${siteKey || siteUrl}`;
+  const showTypingIndicator = toBoolean(
+    config.showTypingIndicator ?? script?.dataset.showTypingIndicator,
+    true
   );
   const offsetX = toNumber(config.offsetX ?? script?.dataset.offsetX, 20);
   const offsetY = toNumber(config.offsetY ?? script?.dataset.offsetY, 20);
@@ -137,8 +151,9 @@
     .agentbar-root.right { right: var(--agentbar-offset-x); top: 50%; transform: translateY(-50%); }
     .agentbar-root.left { left: var(--agentbar-offset-x); top: 50%; transform: translateY(-50%); }
     .agentbar-root.bottom { left: 50%; bottom: var(--agentbar-offset-y); transform: translateX(-50%); }
-    .agentbar-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 48px; height: 48px; padding: 0 14px; border-radius: var(--agentbar-button-radius); border: 1px solid var(--agentbar-border); background: var(--agentbar-button-bg); cursor: pointer; font-size: 12px; color: var(--agentbar-button-text); box-shadow: var(--agentbar-button-shadow); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .agentbar-button { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 48px; height: 48px; padding: 0 14px; border-radius: var(--agentbar-button-radius); border: 1px solid var(--agentbar-border); background: var(--agentbar-button-bg); cursor: pointer; font-size: 12px; color: var(--agentbar-button-text); box-shadow: var(--agentbar-button-shadow); transition: transform 0.2s ease, box-shadow 0.2s ease; }
     .agentbar-button:active { transform: translateY(1px); }
+    .agentbar-badge { position: absolute; top: -6px; right: -6px; background: var(--agentbar-badge-bg); color: var(--agentbar-badge-text); font-size: 10px; padding: 2px 6px; border-radius: 999px; border: 1px solid rgba(15, 23, 42, 0.1); }
     .agentbar-button.icon-only { width: 48px; padding: 0; }
     .agentbar-icon { width: 18px; height: 18px; }
     .agentbar-button-label { font-size: 12px; letter-spacing: 0.02em; }
@@ -157,12 +172,18 @@
     .agentbar-suggestion { border: 1px solid var(--agentbar-border); background: #ffffff; color: var(--agentbar-text); border-radius: 999px; padding: 6px 10px; font-size: 11px; cursor: pointer; }
     .agentbar-message { padding: 8px 10px; border-radius: 12px; font-size: 12px; line-height: 1.5; border: 1px solid var(--agentbar-border); background: #f8fafc; color: var(--agentbar-text); white-space: pre-wrap; }
     .agentbar-message.user { border-color: var(--agentbar-accent-border); background: var(--agentbar-accent-soft); color: var(--agentbar-accent-text); }
+    .agentbar-typing { display: flex; gap: 4px; align-items: center; }
+    .agentbar-typing span { width: 6px; height: 6px; border-radius: 999px; background: var(--agentbar-muted); opacity: 0.4; animation: agentbar-dot 1.1s infinite; }
+    .agentbar-typing span:nth-child(2) { animation-delay: 0.2s; }
+    .agentbar-typing span:nth-child(3) { animation-delay: 0.4s; }
     .agentbar-footer { border-top: 1px solid var(--agentbar-border); padding: 12px 14px; display: flex; gap: 8px; }
     .agentbar-input { flex: 1; border: 1px solid var(--agentbar-border); border-radius: 10px; padding: 8px 10px; font-size: 12px; background: var(--agentbar-input-bg); color: var(--agentbar-text); }
     .agentbar-input:focus { outline: none; border-color: var(--agentbar-accent-border); }
     .agentbar-send { border: 1px solid var(--agentbar-accent-border); background: var(--agentbar-accent-strong); color: var(--agentbar-accent-text); border-radius: 10px; width: 48px; cursor: pointer; font-size: 11px; }
     .agentbar-status { font-size: 11px; color: var(--agentbar-muted); padding: 0 14px 10px; }
     .agentbar-close { border: 1px solid var(--agentbar-border); background: #f1f5f9; color: var(--agentbar-text); border-radius: 10px; font-size: 11px; padding: 4px 8px; cursor: pointer; }
+    .agentbar-reset { border: 1px solid var(--agentbar-border); background: #ffffff; color: var(--agentbar-text); border-radius: 10px; font-size: 11px; padding: 4px 8px; cursor: pointer; }
+    @keyframes agentbar-dot { 0%, 80%, 100% { transform: translateY(0); opacity: 0.3; } 40% { transform: translateY(-3px); opacity: 0.8; } }
   `;
 
   shadow.innerHTML = `
@@ -171,6 +192,7 @@
       <button class="agentbar-button ${buttonLabel ? "" : "icon-only"}" aria-label="Open chat">
         ${bubbleIcon}
         ${buttonLabel ? `<span class="agentbar-button-label">${buttonLabel}</span>` : ""}
+        ${badgeLabel ? `<span class="agentbar-badge">${badgeLabel}</span>` : ""}
       </button>
       <div class="agentbar-panel ${position}">
         <div class="agentbar-header">
@@ -178,7 +200,10 @@
             <div class="agentbar-title">${title}</div>
             <div class="agentbar-subtitle">${subtitle}</div>
           </div>
-          <button class="agentbar-close" aria-label="Close">Close</button>
+          <div style="display:flex; gap:6px;">
+            ${showReset ? `<button class="agentbar-reset" aria-label="Reset">Reset</button>` : ""}
+            <button class="agentbar-close" aria-label="Close">Close</button>
+          </div>
         </div>
         <div class="agentbar-body"></div>
         <div class="agentbar-status"></div>
@@ -198,6 +223,7 @@
   const send = shadow.querySelector(".agentbar-send");
   const openButton = shadow.querySelector(".agentbar-button");
   const closeButton = shadow.querySelector(".agentbar-close");
+  const resetButton = shadow.querySelector(".agentbar-reset");
 
   if (!root || !panel || !body || !status || !input || !send || !openButton || !closeButton) {
     return;
@@ -244,6 +270,8 @@
   root.style.setProperty("--agentbar-accent-text", accentTextColor);
   root.style.setProperty("--agentbar-button-shadow", buttonShadow);
   root.style.setProperty("--agentbar-panel-shadow", panelShadow);
+  root.style.setProperty("--agentbar-badge-bg", badgeBackground);
+  root.style.setProperty("--agentbar-badge-text", badgeTextColor);
   root.style.setProperty("--agentbar-panel-width", panelWidth);
   root.style.setProperty("--agentbar-panel-max-height", panelMaxHeight);
   root.style.setProperty("--agentbar-panel-radius", panelRadius);
@@ -256,7 +284,43 @@
     messages: [],
     ingested: false,
     loading: false,
+    greeted: false,
   };
+
+  const loadPersisted = () => {
+    if (!persist) {
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed?.messages)) {
+        state.messages = parsed.messages;
+      }
+      if (typeof parsed?.open === "boolean") {
+        state.open = parsed.open;
+      }
+    } catch (_error) {
+      // ignore
+    }
+  };
+
+  const savePersisted = () => {
+    if (!persist) {
+      return;
+    }
+    try {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({ messages: state.messages, open: state.open })
+      );
+    } catch (_error) {
+      // ignore
+    }
+  };
+
+  loadPersisted();
 
   const setOpen = (value) => {
     state.open = value;
@@ -268,7 +332,12 @@
       if (autoIngest) {
         ingest();
       }
+      if (greeting && !state.greeted && state.messages.length === 0) {
+        appendMessage("assistant", greeting);
+        state.greeted = true;
+      }
     }
+    savePersisted();
   };
 
   const setStatus = (text) => {
@@ -284,8 +353,29 @@
     item.textContent = content;
     body.appendChild(item);
     body.scrollTop = body.scrollHeight;
+    savePersisted();
     return { message, item };
   };
+
+  const renderHistory = () => {
+    body.innerHTML = "";
+    body.appendChild(emptyState);
+    if (!state.messages.length) {
+      emptyState.style.display = "block";
+      return;
+    }
+    emptyState.style.display = "none";
+    state.messages.forEach((message) => {
+      const item = document.createElement("div");
+      item.className = `agentbar-message ${message.role}`;
+      item.textContent = message.content;
+      body.appendChild(item);
+    });
+  };
+
+  const typingEl = document.createElement("div");
+  typingEl.className = "agentbar-message agentbar-typing";
+  typingEl.innerHTML = "<span></span><span></span><span></span>";
 
   const ingest = async () => {
     if (state.ingested) {
@@ -320,6 +410,10 @@
     appendMessage("user", text);
     state.loading = true;
     setStatus("Thinking...");
+    if (showTypingIndicator) {
+      body.appendChild(typingEl);
+      body.scrollTop = body.scrollHeight;
+    }
 
     try {
       await ingest();
@@ -345,6 +439,9 @@
       }
 
       const { message, item } = appendMessage("assistant", "");
+      if (typingEl.parentElement) {
+        typingEl.remove();
+      }
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -383,6 +480,9 @@
       state.loading = false;
       setStatus("");
     } catch (error) {
+      if (typingEl.parentElement) {
+        typingEl.remove();
+      }
       appendMessage("assistant", "Could not reach the assistant.");
       state.loading = false;
       setStatus("");
@@ -391,6 +491,16 @@
 
   openButton.addEventListener("click", () => setOpen(!state.open));
   closeButton.addEventListener("click", () => setOpen(false));
+  if (resetButton) {
+    resetButton.addEventListener("click", () => {
+      state.messages = [];
+      body.innerHTML = "";
+      body.appendChild(emptyState);
+      emptyState.style.display = "block";
+      state.greeted = false;
+      savePersisted();
+    });
+  }
   send.addEventListener("click", sendMessage);
   input.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -415,6 +525,9 @@
       }
     });
   }
+
+  renderHistory();
+  setOpen(state.open);
 
   if (openOnLoad) {
     setOpen(true);

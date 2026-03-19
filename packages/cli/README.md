@@ -37,6 +37,10 @@ agentbar set offsetY 24
 agentbar set inputPlaceholder "Ask about this page"
 agentbar set sendLabel "Send"
 agentbar set suggestions "Search pricing | Summarize docs | Draft copy"
+agentbar set badgeLabel "AI"
+agentbar set greeting "Welcome back. How can I help?"
+agentbar set persist true
+agentbar set showReset true
 agentbar set openOnLoad false
 agentbar set autoIngest true
 ```

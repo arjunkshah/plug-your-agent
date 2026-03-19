@@ -32,6 +32,10 @@ import { AgentBar } from "@arjun-shah/agentbar-react";
   closeOnOutsideClick={true}
   inputPlaceholder="Ask about this page"
   suggestions={["Search pricing", "Summarize docs", "Draft marketing copy"]}
+  greeting="Welcome back. How can I help?"
+  showReset={true}
+  persist={true}
+  badgeLabel="AI"
 />;
 ```
 

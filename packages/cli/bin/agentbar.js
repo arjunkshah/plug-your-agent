@@ -26,6 +26,9 @@ const DEFAULT_CONFIG = {
   accentTextColor: "",
   buttonShadow: "0 18px 40px -28px rgba(15, 23, 42, 0.35)",
   panelShadow: "0 30px 60px -45px rgba(15, 23, 42, 0.35)",
+  badgeLabel: "",
+  badgeBackground: "",
+  badgeTextColor: "",
   panelWidth: "320px",
   panelMaxHeight: "70vh",
   panelRadius: "16px",
@@ -35,9 +38,14 @@ const DEFAULT_CONFIG = {
   inputPlaceholder: "Type a message",
   sendLabel: "Send",
   suggestions: ["Search pricing", "Explain a feature", "Draft homepage copy"],
+  greeting: "",
   openOnLoad: false,
   autoIngest: true,
   closeOnOutsideClick: true,
+  showReset: false,
+  persist: false,
+  storageKey: "",
+  showTypingIndicator: true,
 };
 
 const configPath = path.join(process.cwd(), CONFIG_FILE);
@@ -115,6 +123,15 @@ const renderSnippet = (config) => {
   if (config.panelShadow) {
     lines.push(`  data-panel-shadow=\"${config.panelShadow}\"`);
   }
+  if (config.badgeLabel) {
+    lines.push(`  data-badge-label=\"${config.badgeLabel}\"`);
+  }
+  if (config.badgeBackground) {
+    lines.push(`  data-badge-background=\"${config.badgeBackground}\"`);
+  }
+  if (config.badgeTextColor) {
+    lines.push(`  data-badge-text-color=\"${config.badgeTextColor}\"`);
+  }
   if (config.panelWidth) {
     lines.push(`  data-panel-width=\"${config.panelWidth}\"`);
   }
@@ -142,8 +159,23 @@ const renderSnippet = (config) => {
   if (config.suggestions?.length) {
     lines.push(`  data-suggestions=\"${config.suggestions.join(" | ")}\"`);
   }
+  if (config.greeting) {
+    lines.push(`  data-greeting=\"${config.greeting}\"`);
+  }
   if (config.openOnLoad) {
     lines.push(`  data-open=\"${config.openOnLoad}\"`);
+  }
+  if (config.showReset) {
+    lines.push(`  data-show-reset=\"${config.showReset}\"`);
+  }
+  if (config.persist) {
+    lines.push(`  data-persist=\"${config.persist}\"`);
+  }
+  if (config.storageKey) {
+    lines.push(`  data-storage-key=\"${config.storageKey}\"`);
+  }
+  if (typeof config.showTypingIndicator === "boolean") {
+    lines.push(`  data-show-typing-indicator=\"${config.showTypingIndicator}\"`);
   }
   if (typeof config.autoIngest === "boolean") {
     lines.push(`  data-auto-ingest=\"${config.autoIngest}\"`);
@@ -171,12 +203,17 @@ const printHelp = () => {
     "  buttonLabel, fontFamily, panelBackground, textColor, mutedTextColor, borderColor,"
   );
   console.log(
-    "  buttonBackground, buttonTextColor, accentTextColor, buttonShadow, panelShadow, panelWidth,"
+    "  buttonBackground, buttonTextColor, accentTextColor, buttonShadow, panelShadow, badgeLabel,"
+  );
+  console.log(
+    "  badgeBackground, badgeTextColor, panelWidth, panelMaxHeight, panelRadius,"
   );
   console.log(
     "  offsetX, offsetY, inputPlaceholder, sendLabel, suggestions, openOnLoad, autoIngest,"
   );
-  console.log("  closeOnOutsideClick\n");
+  console.log(
+    "  greeting, showReset, persist, storageKey, showTypingIndicator, closeOnOutsideClick\n"
+  );
   console.log(`Config file: ${configPath}`);
 };
 
@@ -221,7 +258,13 @@ const init = async () => {
       .split(/[|,]/)
       .map((value) => value.trim())
       .filter(Boolean);
+    config.greeting = await ask(rl, "Greeting (optional)", config.greeting);
     config.openOnLoad = (await ask(rl, "Open on load (true/false)", String(config.openOnLoad))) === "true";
+    config.showReset = (await ask(rl, "Show reset button (true/false)", String(config.showReset))) === "true";
+    config.persist = (await ask(rl, "Persist chat (true/false)", String(config.persist))) === "true";
+    config.showTypingIndicator =
+      (await ask(rl, "Show typing indicator (true/false)", String(config.showTypingIndicator))) ===
+      "true";
     config.autoIngest = (await ask(rl, "Auto ingest (true/false)", String(config.autoIngest))) === "true";
   } finally {
     rl.close();
@@ -261,7 +304,14 @@ const setValue = (key, value) => {
       process.exit(1);
     }
     config[key] = parsed;
-  } else if (key === "openOnLoad" || key === "autoIngest" || key === "closeOnOutsideClick") {
+  } else if (
+    key === "openOnLoad" ||
+    key === "autoIngest" ||
+    key === "closeOnOutsideClick" ||
+    key === "showReset" ||
+    key === "persist" ||
+    key === "showTypingIndicator"
+  ) {
     config[key] = value === "true" || value === true;
   } else if (key === "suggestions") {
     config[key] = String(value)
