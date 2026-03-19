@@ -101,6 +101,13 @@ export const AgentBar: React.FC<AgentBarProps> = ({
   const activeAgent = enabledPlugins.find((plugin) => plugin.id === activeAgentId) ?? null;
   const inputId = activeAgent ? `agent-input-${activeAgent.id}` : "agent-input";
   const panelBaseTop = 32;
+  const hostEndpoints = useMemo(() => {
+    const schemaKeys = Object.keys(apiSchema ?? {});
+    if (schemaKeys.length > 0) {
+      return schemaKeys;
+    }
+    return Object.keys(hostApi ?? {});
+  }, [apiSchema, hostApi]);
 
   const dockPosition =
     position === "left"
@@ -259,31 +266,95 @@ export const AgentBar: React.FC<AgentBarProps> = ({
         <div
           ref={panelRef}
           style={panelStyle}
-          className={`fixed ${panelPosition} z-20 w-[92vw] max-w-[380px] rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-[0_35px_70px_-50px_rgba(15,23,42,0.35)] backdrop-blur sm:w-[380px]`}
+          className={`fixed ${panelPosition} z-20 w-[92vw] max-w-[400px] rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-[0_35px_70px_-50px_rgba(15,23,42,0.35)] backdrop-blur sm:w-[400px]`}
         >
           <div
             onPointerDown={handleDragStart}
-            className="flex cursor-grab items-start justify-between gap-3 border-b border-slate-200 pb-3 active:cursor-grabbing"
+            className="flex cursor-grab flex-col gap-3 border-b border-slate-200 pb-4 active:cursor-grabbing"
           >
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{activeAgent.name}</p>
-              <p className="text-xs text-slate-500">{activeAgent.description}</p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-100 text-slate-700">
+                  {(() => {
+                    const Icon = getIcon(activeAgent);
+                    return <Icon size={20} weight="fill" />;
+                  })()}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">{activeAgent.name}</p>
+                  <p className="text-xs text-slate-500">{activeAgent.description}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Close agent panel"
+                onClick={() => setIsOpen(false)}
+                onPointerDown={(event) => event.stopPropagation()}
+                className="rounded-lg border border-slate-200 bg-slate-100 p-1 text-slate-500 transition hover:bg-slate-200/70 active:translate-y-[1px]"
+              >
+                <X size={16} />
+              </button>
             </div>
-            <button
-              type="button"
-              aria-label="Close agent panel"
-              onClick={() => setIsOpen(false)}
-              onPointerDown={(event) => event.stopPropagation()}
-              className="rounded-lg border border-slate-200 bg-slate-100 p-1 text-slate-500 transition hover:bg-slate-200/70 active:translate-y-[1px]"
-            >
-              <X size={16} />
-            </button>
+            <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-slate-500">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
+                Tools {activeAgent.tools.length}
+              </span>
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
+                Host API {hostEndpoints.length}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-3 grid gap-2 text-xs text-slate-600">
+            {activeAgent.tools.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {activeAgent.tools.map((tool) => (
+                  <span
+                    key={tool.name}
+                    className="rounded-full border border-emerald-600/20 bg-emerald-600/10 px-3 py-1 text-emerald-700"
+                  >
+                    {tool.name}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-slate-500">
+                No tools are configured for this agent yet.
+              </p>
+            )}
+            {hostEndpoints.length > 0 ? (
+              <div className="flex flex-wrap gap-2 text-[11px] text-slate-500">
+                {hostEndpoints.slice(0, 6).map((endpoint) => (
+                  <span key={endpoint} className="rounded-full border border-slate-200 px-2 py-1">
+                    {endpoint}
+                  </span>
+                ))}
+                {hostEndpoints.length > 6 ? (
+                  <span className="rounded-full border border-slate-200 px-2 py-1 text-slate-400">
+                    +{hostEndpoints.length - 6} more
+                  </span>
+                ) : null}
+              </div>
+            ) : (
+              <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-slate-500">
+                No host API endpoints connected. Provide functions on the hostApi prop to enable tool
+                calls.
+              </p>
+            )}
           </div>
 
           <div className="mt-3 flex max-h-[52vh] flex-col gap-3 overflow-y-auto pr-1">
             {(messages[activeAgent.id] ?? []).length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-xs text-slate-500">
-                Start with a question or a task for this agent. Try searching FAQs or asking for copy.
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-xs text-slate-500">
+                <p className="font-semibold text-slate-700">Start a new thread</p>
+                <p className="mt-1 text-slate-500">
+                  Ask for help, request a task, or explore what this agent can do.
+                </p>
+                <div className="mt-3 grid gap-2 text-[11px] uppercase tracking-[0.2em] text-slate-400">
+                  <span>Search FAQs</span>
+                  <span>Draft copy</span>
+                  <span>Open a ticket</span>
+                </div>
               </div>
             ) : (
               (messages[activeAgent.id] ?? []).map((step, index) => (
@@ -293,14 +364,16 @@ export const AgentBar: React.FC<AgentBarProps> = ({
                       {step.content}
                     </p>
                   ) : (
-                    <div
-                      className={`rounded-xl px-3 py-2 text-sm leading-relaxed ${
-                        step.role === "user"
-                          ? "border border-emerald-600/20 bg-emerald-600/10 text-emerald-700"
-                          : "border border-slate-200 bg-slate-50 text-slate-700"
-                      }`}
-                    >
-                      <pre className="whitespace-pre-wrap font-sans">{step.content}</pre>
+                    <div className={`flex ${step.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                          step.role === "user"
+                            ? "border border-emerald-600/30 bg-emerald-600/10 text-emerald-700"
+                            : "border border-slate-200 bg-slate-50 text-slate-700"
+                        }`}
+                      >
+                        <pre className="whitespace-pre-wrap font-sans">{step.content}</pre>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -351,7 +424,9 @@ export const AgentBar: React.FC<AgentBarProps> = ({
               </button>
             </div>
             <p className="mt-2 text-[11px] text-slate-500">
-              Connected to host API schema with {Object.keys(apiSchema ?? {}).length} endpoints.
+              {hostEndpoints.length > 0
+                ? `Connected to ${hostEndpoints.length} host API endpoints.`
+                : "Connect host API endpoints to enable tool calls."}
             </p>
           </div>
         </div>
