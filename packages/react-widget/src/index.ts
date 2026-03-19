@@ -10,5 +10,5 @@ export type {
   LLMProvider,
   LLMMessage,
   ProxyProviderOptions,
-} from "@agentbar/runtime";
-export { createOpenAIProvider, createProxyProvider } from "@agentbar/runtime";
+} from "@arjun-shah/agentbar-runtime";
+export { createOpenAIProvider, createProxyProvider } from "@arjun-shah/agentbar-runtime";

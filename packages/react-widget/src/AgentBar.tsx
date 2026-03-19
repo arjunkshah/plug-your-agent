@@ -9,8 +9,8 @@ import {
   Sparkle,
   X,
 } from "@phosphor-icons/react";
-import type { AgentPlugin, AgentStep, HostApi, HostApiSchema, LLMProvider } from "@agentbar/runtime";
-import { createAgentSession } from "@agentbar/runtime";
+import type { AgentPlugin, AgentStep, HostApi, HostApiSchema, LLMProvider } from "@arjun-shah/agentbar-runtime";
+import { createAgentSession } from "@arjun-shah/agentbar-runtime";
 import { defaultPlugins } from "./defaultPlugins";
 
 export type AgentBarProps = {

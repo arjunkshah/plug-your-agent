@@ -7,7 +7,7 @@ Drop-in agent plugin system for your app or site. Add a single React component, 
 Install the packages:
 
 ```bash
-npm install @agentbar/react @agentbar/runtime
+npm install @arjun-shah/agentbar-react @arjun-shah/agentbar-runtime
 ```
 
 ## CLI setup
@@ -15,7 +15,7 @@ npm install @agentbar/react @agentbar/runtime
 Install the CLI and generate your snippet:
 
 ```bash
-npm install -g @agentbar/cli
+npm install -g @arjun-shah/agentbar-cli
 agentbar init
 ```
 
@@ -27,9 +27,9 @@ agentbar snippet
 ```
 
 ```tsx
-import { AgentBar } from "@agentbar/react";
-import { createProxyProvider } from "@agentbar/runtime";
-import type { HostApi, HostApiSchema } from "@agentbar/runtime";
+import { AgentBar } from "@arjun-shah/agentbar-react";
+import { createProxyProvider } from "@arjun-shah/agentbar-runtime";
+import type { HostApi, HostApiSchema } from "@arjun-shah/agentbar-runtime";
 
 const hostApi: HostApi = {
   searchFaq: async (query) => [],
@@ -126,7 +126,7 @@ VITE_AGENTBAR_API_BASE=https://your-deploy-url
 Provide your own `AgentPlugin[]` to the `agents` prop. Each agent defines its system prompt and a list of tools that map to your host API functions.
 
 ```ts
-import type { AgentPlugin, HostApi } from "@agentbar/runtime";
+import type { AgentPlugin, HostApi } from "@arjun-shah/agentbar-runtime";
 
 interface AnalyticsHostApi extends HostApi {
   getUsageTrends(range: string): Promise<string[]>;
@@ -171,7 +171,7 @@ export interface HostApi {
 The runtime ships with a mocked LLM fallback, and you can plug in a proxy provider when you are ready:
 
 ```ts
-import { createProxyProvider } from "@agentbar/runtime";
+import { createProxyProvider } from "@arjun-shah/agentbar-runtime";
 
 const llmProvider = createProxyProvider({
   endpoint: "https://your-deploy-url/api/chat",
@@ -215,6 +215,6 @@ The widget uses Tailwind classes. Ensure your Tailwind `content` includes the pa
 ```ts
 content: [
   "./src/**/*.{ts,tsx}",
-  "./node_modules/@agentbar/react/dist/**/*.{js,ts,jsx,tsx}",
+  "./node_modules/@arjun-shah/agentbar-react/dist/**/*.{js,ts,jsx,tsx}",
 ];
 ```

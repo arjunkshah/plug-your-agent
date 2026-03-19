@@ -1,17 +1,17 @@
-# @agentbar/runtime
+# @arjun-shah/agentbar-runtime
 
 Agent runtime and tool system for Agent Plugin Bar.
 
 ## Install
 
 ```bash
-npm install @agentbar/runtime
+npm install @arjun-shah/agentbar-runtime
 ```
 
 ## Usage
 
 ```ts
-import { createAgentSession, createProxyProvider } from "@agentbar/runtime";
+import { createAgentSession, createProxyProvider } from "@arjun-shah/agentbar-runtime";
 
 const llmProvider = createProxyProvider({
   endpoint: "https://your-deploy-url/api/chat",

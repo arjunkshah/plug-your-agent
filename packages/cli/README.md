@@ -1,11 +1,11 @@
-# @agentbar/cli
+# @arjun-shah/agentbar-cli
 
 CLI helper to generate and manage the Agent Plugin Bar embed snippet.
 
 ## Install
 
 ```bash
-npm install -g @agentbar/cli
+npm install -g @arjun-shah/agentbar-cli
 ```
 
 ## Usage

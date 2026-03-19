@@ -9,8 +9,8 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@agentbar/react": path.resolve(rootDir, "../../packages/react-widget/src"),
-      "@agentbar/runtime": path.resolve(rootDir, "../../packages/agent-runtime/src"),
+      "@arjun-shah/agentbar-react": path.resolve(rootDir, "../../packages/react-widget/src"),
+      "@arjun-shah/agentbar-runtime": path.resolve(rootDir, "../../packages/agent-runtime/src"),
     },
   },
 });

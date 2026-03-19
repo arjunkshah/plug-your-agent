@@ -1,5 +1,5 @@
 {
-  "name": "@agentbar/react",
+  "name": "@arjun-shah/agentbar-react",
   "version": "0.1.0",
   "type": "module",
   "description": "Agent Plugin Bar React widget.",
@@ -34,7 +34,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@agentbar/runtime": "^0.1.0",
+    "@arjun-shah/agentbar-runtime": "^0.1.0",
     "@phosphor-icons/react": "^2.1.7"
   },
   "peerDependencies": {

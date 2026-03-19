@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { AgentBar } from "@agentbar/react";
-import { createProxyProvider } from "@agentbar/runtime";
-import type { HostApi, HostApiSchema } from "@agentbar/runtime";
+import { AgentBar } from "@arjun-shah/agentbar-react";
+import { createProxyProvider } from "@arjun-shah/agentbar-runtime";
+import type { HostApi, HostApiSchema } from "@arjun-shah/agentbar-runtime";
 
 const apiBase = import.meta.env.VITE_AGENTBAR_API_BASE || "";
 const apiBaseDisplay = apiBase || window.location.origin;
@@ -95,8 +95,8 @@ const apiSchema: HostApiSchema = {
   },
 };
 
-const quickstart = `import { AgentBar } from "@agentbar/react";
-import { createProxyProvider } from "@agentbar/runtime";
+const quickstart = `import { AgentBar } from "@arjun-shah/agentbar-react";
+import { createProxyProvider } from "@arjun-shah/agentbar-runtime";
 
 const llmProvider = createProxyProvider({
   endpoint: "https://your-deploy-url/api/chat",
@@ -122,7 +122,7 @@ const hostApiSnippet = `export interface HostApi {
 
 const embedSnippet = `<script\n  src=\"https://your-deploy-url/agentbar.js\"\n  data-site=\"https://your-site.com\"\n  data-api=\"https://your-deploy-url\"\n  data-depth=\"2\"\n  data-max-pages=\"25\"\n  data-site-key=\"your-site-key\"\n></script>`;
 
-const cliSnippet = `npm install -g @agentbar/cli\nagentbar init\nagentbar snippet`;
+const cliSnippet = `npm install -g @arjun-shah/agentbar-cli\nagentbar init\nagentbar snippet`;
 
 export default function App() {
   const [statusItems, setStatusItems] = useState<
@@ -332,7 +332,7 @@ export default function App() {
                 Install the widget and runtime packages. React is a peer dependency.
               </p>
               <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
-                <pre>npm install @agentbar/react @agentbar/runtime</pre>
+                <pre>npm install @arjun-shah/agentbar-react @arjun-shah/agentbar-runtime</pre>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
                 <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">CLI</p>
@@ -438,7 +438,7 @@ export default function App() {
                 heuristic when no provider is supplied.
               </p>
               <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
-                <pre className="whitespace-pre-wrap">{`import { createProxyProvider } from "@agentbar/runtime";
+                <pre className="whitespace-pre-wrap">{`import { createProxyProvider } from "@arjun-shah/agentbar-runtime";
 
 const llmProvider = createProxyProvider({
   endpoint: "https://your-deploy-url/api/chat",
@@ -519,7 +519,7 @@ const llmProvider = createProxyProvider({
               <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
                 <pre>{`content: [
   "./src/**/*.{ts,tsx}",
-  "./node_modules/@agentbar/react/dist/**/*.{js,ts,jsx,tsx}",
+  "./node_modules/@arjun-shah/agentbar-react/dist/**/*.{js,ts,jsx,tsx}",
 ]`}</pre>
               </div>
             </div>

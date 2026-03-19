@@ -1,4 +1,4 @@
-import type { AgentPlugin, HostApi, ToolDefinition } from "@agentbar/runtime";
+import type { AgentPlugin, HostApi, ToolDefinition } from "@arjun-shah/agentbar-runtime";
 
 const defineTool = <Input, Output>(tool: ToolDefinition<Input, Output>) => tool;
 
