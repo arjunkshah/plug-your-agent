@@ -1,6 +1,6 @@
 {
   "name": "agentbar-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Global wrapper for the Agent Plugin Bar CLI.",
   "bin": {
