@@ -30,6 +30,8 @@ import { AgentBar } from "@arjun-shah/agentbar-react";
   }}
   openOnLoad={true}
   closeOnOutsideClick={true}
+  inputPlaceholder="Ask about this page"
+  suggestions={["Search pricing", "Summarize docs", "Draft marketing copy"]}
 />;
 ```
 

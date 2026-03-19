@@ -22,6 +22,9 @@ export type AgentBarProps = {
   llmProvider?: LLMProvider;
   openOnLoad?: boolean;
   closeOnOutsideClick?: boolean;
+  inputPlaceholder?: string;
+  sendLabel?: string;
+  suggestions?: string[];
   theme?: {
     accent?: string;
     background?: string;
@@ -88,6 +91,9 @@ export const AgentBar: React.FC<AgentBarProps> = ({
   llmProvider,
   openOnLoad,
   closeOnOutsideClick = true,
+  inputPlaceholder,
+  sendLabel = "Send message",
+  suggestions,
   theme,
 }) => {
   const enabledPlugins = useMemo(() => {
@@ -237,12 +243,12 @@ export const AgentBar: React.FC<AgentBarProps> = ({
     };
   }, [handlePointerMove, stopDrag]);
 
-  const handleSend = async () => {
+  const handleSend = async (overrideMessage?: string) => {
     if (!activeAgent) {
       return;
     }
 
-    const currentInput = inputs[activeAgent.id]?.trim() ?? "";
+    const currentInput = overrideMessage ?? inputs[activeAgent.id]?.trim() ?? "";
     if (!currentInput) {
       return;
     }
@@ -286,6 +292,11 @@ export const AgentBar: React.FC<AgentBarProps> = ({
   if (!enabledPlugins.length) {
     return null;
   }
+
+  const suggestionItems =
+    suggestions && suggestions.length > 0
+      ? suggestions
+      : ["Search FAQs", "Draft copy", "Open a ticket"];
 
   const handleAgentClick = (pluginId: string) => {
     setActiveAgentId((current) => {
@@ -431,10 +442,17 @@ export const AgentBar: React.FC<AgentBarProps> = ({
                 <p className="mt-1 text-[color:var(--agentbar-muted)]">
                   Ask for help, request a task, or explore what this agent can do.
                 </p>
-                <div className="mt-3 grid gap-2 text-[11px] uppercase tracking-[0.2em] text-slate-400">
-                  <span>Search FAQs</span>
-                  <span>Draft copy</span>
-                  <span>Open a ticket</span>
+                <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-500">
+                  {suggestionItems.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      onClick={() => handleSend(suggestion)}
+                      className="rounded-full border border-[color:var(--agentbar-border)] bg-white px-3 py-1 text-[color:var(--agentbar-text)] transition hover:bg-slate-100 active:translate-y-[1px]"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
                 </div>
               </div>
             ) : (
@@ -495,13 +513,15 @@ export const AgentBar: React.FC<AgentBarProps> = ({
                     handleSend();
                   }
                 }}
-                placeholder={`Ask ${activeAgent.name}...`}
+                aria-label={inputPlaceholder ?? `Message ${activeAgent.name}`}
+                placeholder={inputPlaceholder ?? `Ask ${activeAgent.name}...`}
                 className="w-full rounded-xl border border-[color:var(--agentbar-border)] bg-white px-3 py-2 text-sm text-[color:var(--agentbar-text)] placeholder:text-slate-400 focus:border-[color:var(--agentbar-accent-border)] focus:outline-none"
               />
               <button
                 type="button"
                 onClick={handleSend}
                 disabled={status[activeAgent.id]?.sending}
+                aria-label={sendLabel}
                 className="flex h-10 w-10 items-center justify-center rounded-xl border border-[color:var(--agentbar-accent-border)] bg-[color:var(--agentbar-accent-soft)] text-[color:var(--agentbar-accent)] transition hover:bg-[color:var(--agentbar-accent-strong)] disabled:cursor-not-allowed disabled:opacity-50 active:translate-y-[1px]"
               >
                 <PaperPlaneRight size={18} />

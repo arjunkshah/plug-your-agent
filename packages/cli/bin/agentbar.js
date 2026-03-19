@@ -24,6 +24,8 @@ const DEFAULT_CONFIG = {
   buttonBackground: "#ffffff",
   buttonTextColor: "#0f172a",
   accentTextColor: "",
+  buttonShadow: "0 18px 40px -28px rgba(15, 23, 42, 0.35)",
+  panelShadow: "0 30px 60px -45px rgba(15, 23, 42, 0.35)",
   panelWidth: "320px",
   panelMaxHeight: "70vh",
   panelRadius: "16px",
@@ -107,6 +109,12 @@ const renderSnippet = (config) => {
   if (config.accentTextColor) {
     lines.push(`  data-accent-text-color=\"${config.accentTextColor}\"`);
   }
+  if (config.buttonShadow) {
+    lines.push(`  data-button-shadow=\"${config.buttonShadow}\"`);
+  }
+  if (config.panelShadow) {
+    lines.push(`  data-panel-shadow=\"${config.panelShadow}\"`);
+  }
   if (config.panelWidth) {
     lines.push(`  data-panel-width=\"${config.panelWidth}\"`);
   }
@@ -163,7 +171,7 @@ const printHelp = () => {
     "  buttonLabel, fontFamily, panelBackground, textColor, mutedTextColor, borderColor,"
   );
   console.log(
-    "  buttonBackground, buttonTextColor, accentTextColor, panelWidth, panelMaxHeight, panelRadius,"
+    "  buttonBackground, buttonTextColor, accentTextColor, buttonShadow, panelShadow, panelWidth,"
   );
   console.log(
     "  offsetX, offsetY, inputPlaceholder, sendLabel, suggestions, openOnLoad, autoIngest,"

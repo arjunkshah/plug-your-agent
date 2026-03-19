@@ -68,6 +68,8 @@ const llmProvider = createProxyProvider({
     dockRadius: "16px",
     fontFamily: "Satoshi, ui-sans-serif",
   }}
+  inputPlaceholder="Ask about this page"
+  suggestions={["Search pricing", "Summarize docs", "Draft marketing copy"]}
   position="right"
   llmProvider={llmProvider}
 />;
@@ -114,6 +116,8 @@ agentbar snippet
 - `data-button-background` - launcher background color.
 - `data-button-text-color` - launcher text/icon color.
 - `data-accent-text-color` - user message text color.
+- `data-button-shadow` - custom launcher shadow.
+- `data-panel-shadow` - custom panel shadow.
 - `data-panel-width` - panel width (e.g. `360px`).
 - `data-panel-max-height` - panel max height (e.g. `70vh`).
 - `data-panel-radius` - panel corner radius (e.g. `18px`).

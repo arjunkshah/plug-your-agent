@@ -86,6 +86,14 @@
   const buttonBackground = config.buttonBackground || script?.dataset.buttonBackground || "#ffffff";
   const buttonTextColor = config.buttonTextColor || script?.dataset.buttonTextColor || textColor;
   const accentTextColor = config.accentTextColor || script?.dataset.accentTextColor || themeColor;
+  const buttonShadow =
+    config.buttonShadow ||
+    script?.dataset.buttonShadow ||
+    "0 18px 40px -28px rgba(15, 23, 42, 0.35)";
+  const panelShadow =
+    config.panelShadow ||
+    script?.dataset.panelShadow ||
+    "0 30px 60px -45px rgba(15, 23, 42, 0.35)";
   const panelWidth = withUnit(config.panelWidth ?? script?.dataset.panelWidth, "320px");
   const panelMaxHeight = withUnit(config.panelMaxHeight ?? script?.dataset.panelMaxHeight, "70vh");
   const panelRadius = withUnit(config.panelRadius ?? script?.dataset.panelRadius, "16px");
@@ -129,12 +137,13 @@
     .agentbar-root.right { right: var(--agentbar-offset-x); top: 50%; transform: translateY(-50%); }
     .agentbar-root.left { left: var(--agentbar-offset-x); top: 50%; transform: translateY(-50%); }
     .agentbar-root.bottom { left: 50%; bottom: var(--agentbar-offset-y); transform: translateX(-50%); }
-    .agentbar-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 48px; height: 48px; padding: 0 14px; border-radius: var(--agentbar-button-radius); border: 1px solid var(--agentbar-border); background: var(--agentbar-button-bg); cursor: pointer; font-size: 12px; color: var(--agentbar-button-text); box-shadow: 0 18px 40px -28px rgba(15, 23, 42, 0.35); }
+    .agentbar-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 48px; height: 48px; padding: 0 14px; border-radius: var(--agentbar-button-radius); border: 1px solid var(--agentbar-border); background: var(--agentbar-button-bg); cursor: pointer; font-size: 12px; color: var(--agentbar-button-text); box-shadow: var(--agentbar-button-shadow); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .agentbar-button:active { transform: translateY(1px); }
     .agentbar-button.icon-only { width: 48px; padding: 0; }
     .agentbar-icon { width: 18px; height: 18px; }
     .agentbar-button-label { font-size: 12px; letter-spacing: 0.02em; }
-    .agentbar-panel { position: absolute; right: 64px; top: 0; width: var(--agentbar-panel-width); background: var(--agentbar-panel-bg); border: 1px solid var(--agentbar-border); border-radius: var(--agentbar-panel-radius); box-shadow: 0 30px 60px -45px rgba(15, 23, 42, 0.35); display: none; flex-direction: column; max-height: var(--agentbar-panel-max-height); }
-    .agentbar-panel.open { display: flex; }
+    .agentbar-panel { position: absolute; right: 64px; top: 0; width: var(--agentbar-panel-width); background: var(--agentbar-panel-bg); border: 1px solid var(--agentbar-border); border-radius: var(--agentbar-panel-radius); box-shadow: var(--agentbar-panel-shadow); display: flex; flex-direction: column; max-height: var(--agentbar-panel-max-height); opacity: 0; transform: translateY(10px) scale(0.98); pointer-events: none; transition: opacity 0.18s ease, transform 0.18s ease; }
+    .agentbar-panel.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
     .agentbar-panel.left { left: 64px; right: auto; }
     .agentbar-panel.bottom { left: 50%; bottom: calc(var(--agentbar-offset-y) + 64px); right: auto; top: auto; transform: translateX(-50%); }
     .agentbar-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--agentbar-border); font-size: 13px; color: var(--agentbar-text); }
@@ -150,6 +159,7 @@
     .agentbar-message.user { border-color: var(--agentbar-accent-border); background: var(--agentbar-accent-soft); color: var(--agentbar-accent-text); }
     .agentbar-footer { border-top: 1px solid var(--agentbar-border); padding: 12px 14px; display: flex; gap: 8px; }
     .agentbar-input { flex: 1; border: 1px solid var(--agentbar-border); border-radius: 10px; padding: 8px 10px; font-size: 12px; background: var(--agentbar-input-bg); color: var(--agentbar-text); }
+    .agentbar-input:focus { outline: none; border-color: var(--agentbar-accent-border); }
     .agentbar-send { border: 1px solid var(--agentbar-accent-border); background: var(--agentbar-accent-strong); color: var(--agentbar-accent-text); border-radius: 10px; width: 48px; cursor: pointer; font-size: 11px; }
     .agentbar-status { font-size: 11px; color: var(--agentbar-muted); padding: 0 14px 10px; }
     .agentbar-close { border: 1px solid var(--agentbar-border); background: #f1f5f9; color: var(--agentbar-text); border-radius: 10px; font-size: 11px; padding: 4px 8px; cursor: pointer; }
@@ -232,6 +242,8 @@
   root.style.setProperty("--agentbar-button-text", buttonTextColor);
   root.style.setProperty("--agentbar-input-bg", panelBackground);
   root.style.setProperty("--agentbar-accent-text", accentTextColor);
+  root.style.setProperty("--agentbar-button-shadow", buttonShadow);
+  root.style.setProperty("--agentbar-panel-shadow", panelShadow);
   root.style.setProperty("--agentbar-panel-width", panelWidth);
   root.style.setProperty("--agentbar-panel-max-height", panelMaxHeight);
   root.style.setProperty("--agentbar-panel-radius", panelRadius);
@@ -249,6 +261,14 @@
   const setOpen = (value) => {
     state.open = value;
     panel.classList.toggle("open", value);
+    if (value) {
+      requestAnimationFrame(() => {
+        input.focus();
+      });
+      if (autoIngest) {
+        ingest();
+      }
+    }
   };
 
   const setStatus = (text) => {
@@ -369,13 +389,18 @@
     }
   };
 
-  openButton.addEventListener("click", () => setOpen(true));
+  openButton.addEventListener("click", () => setOpen(!state.open));
   closeButton.addEventListener("click", () => setOpen(false));
   send.addEventListener("click", sendMessage);
   input.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
       sendMessage();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      setOpen(false);
     }
   });
 
