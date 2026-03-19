@@ -14,8 +14,24 @@ const DEFAULT_CONFIG = {
   themeColor: "#059669",
   position: "right",
   title: "Site Assistant",
-  subtitle: "Ask anything about this site.",
-  buttonLabel: "Ask",
+  subtitle: "Get answers from your site.",
+  buttonLabel: "",
+  fontFamily: "ui-sans-serif, system-ui, -apple-system",
+  panelBackground: "#ffffff",
+  textColor: "#0f172a",
+  mutedTextColor: "#64748b",
+  borderColor: "#e2e8f0",
+  buttonBackground: "#ffffff",
+  buttonTextColor: "#0f172a",
+  panelWidth: "320px",
+  panelMaxHeight: "70vh",
+  panelRadius: "16px",
+  buttonRadius: "16px",
+  offsetX: 20,
+  offsetY: 20,
+  openOnLoad: false,
+  autoIngest: true,
+  closeOnOutsideClick: true,
 };
 
 const configPath = path.join(process.cwd(), CONFIG_FILE);
@@ -63,6 +79,54 @@ const renderSnippet = (config) => {
   if (config.buttonLabel) {
     lines.push(`  data-button-label=\"${config.buttonLabel}\"`);
   }
+  if (config.fontFamily) {
+    lines.push(`  data-font-family=\"${config.fontFamily}\"`);
+  }
+  if (config.panelBackground) {
+    lines.push(`  data-panel-background=\"${config.panelBackground}\"`);
+  }
+  if (config.textColor) {
+    lines.push(`  data-text-color=\"${config.textColor}\"`);
+  }
+  if (config.mutedTextColor) {
+    lines.push(`  data-muted-text-color=\"${config.mutedTextColor}\"`);
+  }
+  if (config.borderColor) {
+    lines.push(`  data-border-color=\"${config.borderColor}\"`);
+  }
+  if (config.buttonBackground) {
+    lines.push(`  data-button-background=\"${config.buttonBackground}\"`);
+  }
+  if (config.buttonTextColor) {
+    lines.push(`  data-button-text-color=\"${config.buttonTextColor}\"`);
+  }
+  if (config.panelWidth) {
+    lines.push(`  data-panel-width=\"${config.panelWidth}\"`);
+  }
+  if (config.panelMaxHeight) {
+    lines.push(`  data-panel-max-height=\"${config.panelMaxHeight}\"`);
+  }
+  if (config.panelRadius) {
+    lines.push(`  data-panel-radius=\"${config.panelRadius}\"`);
+  }
+  if (config.buttonRadius) {
+    lines.push(`  data-button-radius=\"${config.buttonRadius}\"`);
+  }
+  if (typeof config.offsetX === "number") {
+    lines.push(`  data-offset-x=\"${config.offsetX}\"`);
+  }
+  if (typeof config.offsetY === "number") {
+    lines.push(`  data-offset-y=\"${config.offsetY}\"`);
+  }
+  if (config.openOnLoad) {
+    lines.push(`  data-open=\"${config.openOnLoad}\"`);
+  }
+  if (typeof config.autoIngest === "boolean") {
+    lines.push(`  data-auto-ingest=\"${config.autoIngest}\"`);
+  }
+  if (typeof config.closeOnOutsideClick === "boolean") {
+    lines.push(`  data-close-on-outside-click=\"${config.closeOnOutsideClick}\"`);
+  }
   lines.push("></script>");
   return lines.join("\n");
 };
@@ -76,8 +140,16 @@ const printHelp = () => {
   console.log("  agentbar config         Print config JSON");
   console.log("  agentbar help           Show help\n");
   console.log("Config keys:");
-  console.log("  siteUrl, apiBase, depth, maxPages, siteKey, themeColor, position,");
-  console.log("  title, subtitle, buttonLabel\n");
+  console.log(
+    "  siteUrl, apiBase, depth, maxPages, siteKey, themeColor, position, title, subtitle,"
+  );
+  console.log(
+    "  buttonLabel, fontFamily, panelBackground, textColor, mutedTextColor, borderColor,"
+  );
+  console.log(
+    "  buttonBackground, buttonTextColor, panelWidth, panelMaxHeight, panelRadius, buttonRadius,"
+  );
+  console.log("  offsetX, offsetY, openOnLoad, autoIngest, closeOnOutsideClick\n");
   console.log(`Config file: ${configPath}`);
 };
 
@@ -110,6 +182,9 @@ const init = async () => {
     config.title = await ask(rl, "Widget title", config.title);
     config.subtitle = await ask(rl, "Widget subtitle", config.subtitle);
     config.buttonLabel = await ask(rl, "Button label", config.buttonLabel);
+    config.fontFamily = await ask(rl, "Font family", config.fontFamily);
+    config.openOnLoad = (await ask(rl, "Open on load (true/false)", String(config.openOnLoad))) === "true";
+    config.autoIngest = (await ask(rl, "Auto ingest (true/false)", String(config.autoIngest))) === "true";
   } finally {
     rl.close();
   }
@@ -141,6 +216,15 @@ const setValue = (key, value) => {
       process.exit(1);
     }
     config[key] = parsed;
+  } else if (key === "offsetX" || key === "offsetY") {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      console.error(`${key} must be a number.`);
+      process.exit(1);
+    }
+    config[key] = parsed;
+  } else if (key === "openOnLoad" || key === "autoIngest" || key === "closeOnOutsideClick") {
+    config[key] = value === "true" || value === true;
   } else {
     config[key] = value;
   }

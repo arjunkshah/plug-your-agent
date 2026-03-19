@@ -96,10 +96,26 @@ agentbar snippet
 - `data-depth` - crawl depth (default: 1).
 - `data-max-pages` - max pages to index (default: 15).
 - `data-theme-color` - brand color (hex).
+- `data-font-family` - font stack for the widget.
+- `data-panel-background` - panel background color.
+- `data-text-color` - primary text color.
+- `data-muted-text-color` - muted text color.
+- `data-border-color` - border color.
+- `data-button-background` - launcher background color.
+- `data-button-text-color` - launcher text/icon color.
+- `data-panel-width` - panel width (e.g. `360px`).
+- `data-panel-max-height` - panel max height (e.g. `70vh`).
+- `data-panel-radius` - panel corner radius (e.g. `18px`).
+- `data-button-radius` - launcher corner radius (e.g. `999px`).
+- `data-offset-x` - horizontal offset in px.
+- `data-offset-y` - vertical offset in px.
 - `data-title` - widget title.
 - `data-subtitle` - widget subtitle.
+- `data-button-label` - optional launcher label (defaults to icon only).
 - `data-position` - `left`, `right`, or `bottom`.
 - `data-open` - `true` to open on load.
+- `data-auto-ingest` - `true` to auto-index on load.
+- `data-close-on-outside-click` - `true` to close when clicking outside.
 
 ## Documentation Site
 
