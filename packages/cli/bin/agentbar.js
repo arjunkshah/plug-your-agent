@@ -1,0 +1,182 @@
+#!/usr/bin/env node
+import fs from "node:fs";
+import path from "node:path";
+import readline from "node:readline";
+import process from "node:process";
+
+const CONFIG_FILE = "agentbar.config.json";
+const DEFAULT_CONFIG = {
+  apiBase: "https://agent-pug.vercel.app",
+  siteUrl: "",
+  siteKey: "",
+  depth: 1,
+  maxPages: 15,
+  themeColor: "#059669",
+  position: "right",
+  title: "Site Assistant",
+  subtitle: "Ask anything about this site.",
+  buttonLabel: "Ask",
+};
+
+const configPath = path.join(process.cwd(), CONFIG_FILE);
+
+const loadConfig = () => {
+  if (!fs.existsSync(configPath)) {
+    return { ...DEFAULT_CONFIG };
+  }
+  try {
+    const data = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    return { ...DEFAULT_CONFIG, ...data };
+  } catch {
+    return { ...DEFAULT_CONFIG };
+  }
+};
+
+const saveConfig = (config) => {
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+};
+
+const renderSnippet = (config) => {
+  const lines = [
+    "<script",
+    `  src=\"${config.apiBase.replace(/\/$/, "")}/agentbar.js\"`,
+    `  data-site=\"${config.siteUrl || "https://your-site.com"}\"`,
+    `  data-api=\"${config.apiBase.replace(/\/$/, "")}\"`,
+    `  data-depth=\"${config.depth}\"`,
+    `  data-max-pages=\"${config.maxPages}\"`,
+  ];
+  if (config.siteKey) {
+    lines.push(`  data-site-key=\"${config.siteKey}\"`);
+  }
+  if (config.themeColor) {
+    lines.push(`  data-theme-color=\"${config.themeColor}\"`);
+  }
+  if (config.position) {
+    lines.push(`  data-position=\"${config.position}\"`);
+  }
+  if (config.title) {
+    lines.push(`  data-title=\"${config.title}\"`);
+  }
+  if (config.subtitle) {
+    lines.push(`  data-subtitle=\"${config.subtitle}\"`);
+  }
+  if (config.buttonLabel) {
+    lines.push(`  data-button-label=\"${config.buttonLabel}\"`);
+  }
+  lines.push("></script>");
+  return lines.join("\n");
+};
+
+const printHelp = () => {
+  console.log("Agent Plugin Bar CLI\n");
+  console.log("Commands:");
+  console.log("  agentbar init           Interactive setup and snippet output");
+  console.log("  agentbar snippet        Print current embed snippet");
+  console.log("  agentbar set <key> <v>  Update config value");
+  console.log("  agentbar config         Print config JSON");
+  console.log("  agentbar help           Show help\n");
+  console.log("Config keys:");
+  console.log("  siteUrl, apiBase, depth, maxPages, siteKey, themeColor, position,");
+  console.log("  title, subtitle, buttonLabel\n");
+  console.log(`Config file: ${configPath}`);
+};
+
+const ask = (rl, prompt, fallback) =>
+  new Promise((resolve) => {
+    const label = fallback ? `${prompt} (${fallback}): ` : `${prompt}: `;
+    rl.question(label, (answer) => {
+      const value = answer.trim();
+      resolve(value || fallback || "");
+    });
+  });
+
+const init = async () => {
+  const config = loadConfig();
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  try {
+    config.siteUrl = await ask(rl, "Site URL", config.siteUrl || "https://your-site.com");
+    config.apiBase = await ask(rl, "API base URL", config.apiBase);
+    config.depth = Number(await ask(rl, "Crawl depth", String(config.depth)) || config.depth);
+    config.maxPages = Number(
+      await ask(rl, "Max pages", String(config.maxPages)) || config.maxPages
+    );
+    config.siteKey = await ask(rl, "Site key (optional)", config.siteKey);
+    config.themeColor = await ask(rl, "Theme color", config.themeColor);
+    config.position = await ask(rl, "Position (left/right/bottom)", config.position);
+    config.title = await ask(rl, "Widget title", config.title);
+    config.subtitle = await ask(rl, "Widget subtitle", config.subtitle);
+    config.buttonLabel = await ask(rl, "Button label", config.buttonLabel);
+  } finally {
+    rl.close();
+  }
+
+  saveConfig(config);
+  console.log("\nSaved config to", configPath);
+  console.log("\nEmbed snippet:\n");
+  console.log(renderSnippet(config));
+};
+
+const setValue = (key, value) => {
+  if (!key || typeof value === "undefined") {
+    console.error("Usage: agentbar set <key> <value>");
+    process.exit(1);
+  }
+
+  const config = loadConfig();
+  const allowed = new Set(Object.keys(DEFAULT_CONFIG));
+  if (!allowed.has(key)) {
+    console.error(`Unknown key: ${key}`);
+    printHelp();
+    process.exit(1);
+  }
+
+  if (key === "depth" || key === "maxPages") {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      console.error(`${key} must be a number.`);
+      process.exit(1);
+    }
+    config[key] = parsed;
+  } else {
+    config[key] = value;
+  }
+
+  saveConfig(config);
+  console.log("Updated", key, "in", configPath);
+};
+
+const main = async () => {
+  const [command, arg1, arg2] = process.argv.slice(2);
+
+  switch (command) {
+    case "init":
+      await init();
+      return;
+    case "snippet": {
+      const config = loadConfig();
+      console.log(renderSnippet(config));
+      return;
+    }
+    case "set":
+      setValue(arg1, arg2);
+      return;
+    case "config":
+      console.log(JSON.stringify(loadConfig(), null, 2));
+      return;
+    case "help":
+    case "--help":
+    case "-h":
+    case undefined:
+      printHelp();
+      return;
+    default:
+      console.error(`Unknown command: ${command}`);
+      printHelp();
+  }
+};
+
+main();

@@ -10,6 +10,22 @@ Install the packages:
 npm install @agentbar/react @agentbar/runtime
 ```
 
+## CLI setup
+
+Install the CLI and generate your snippet:
+
+```bash
+npm install -g @agentbar/cli
+agentbar init
+```
+
+This writes `agentbar.config.json` in your project so you can always update values:
+
+```bash
+agentbar set siteUrl https://your-site.com
+agentbar snippet
+```
+
 ```tsx
 import { AgentBar } from "@agentbar/react";
 import { createProxyProvider } from "@agentbar/runtime";
@@ -64,6 +80,13 @@ Deploy this repo to Vercel, set `GROQ_API_KEY`, and embed the widget with one sc
 
 The embed script calls `/api/ingest` to crawl your site (uses `sitemap.xml` if present) and
 `/api/chat` to run Groq inference. Responses stream in real time.
+
+You can generate the snippet with the CLI:
+
+```bash
+agentbar init
+agentbar snippet
+```
 
 ### Embed options
 

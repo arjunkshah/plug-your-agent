@@ -14,7 +14,7 @@
   "scripts": {
     "dev": "npm --prefix apps/demo-app run dev",
     "build": "npm --prefix packages/agent-runtime run build && npm --prefix packages/react-widget run build && npm --prefix apps/demo-app run build",
-    "install:all": "npm --prefix packages/agent-runtime install && npm --prefix packages/react-widget install && npm --prefix apps/demo-app install",
+    "install:all": "npm --prefix packages/agent-runtime install --no-package-lock && npm --prefix packages/react-widget install --no-package-lock && npm --prefix apps/demo-app install --no-package-lock",
     "postinstall": "npm run install:all"
   }
 }

@@ -1,0 +1,26 @@
+{
+  "name": "@agentbar/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Agent Plugin Bar CLI helper.",
+  "bin": {
+    "agentbar": "./bin/agentbar.js"
+  },
+  "files": [
+    "bin"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arjunkshah/plug-your-agent.git"
+  },
+  "keywords": [
+    "agent",
+    "ai",
+    "chatbot",
+    "cli"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

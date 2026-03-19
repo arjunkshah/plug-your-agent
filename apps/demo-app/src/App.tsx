@@ -122,6 +122,8 @@ const hostApiSnippet = `export interface HostApi {
 
 const embedSnippet = `<script\n  src=\"https://your-deploy-url/agentbar.js\"\n  data-site=\"https://your-site.com\"\n  data-api=\"https://your-deploy-url\"\n  data-depth=\"2\"\n  data-max-pages=\"25\"\n  data-site-key=\"your-site-key\"\n></script>`;
 
+const cliSnippet = `npm install -g @agentbar/cli\nagentbar init\nagentbar snippet`;
+
 export default function App() {
   const [statusItems, setStatusItems] = useState<
     Array<{ key: string; url: string; pages: Array<{ url: string; title: string }> }>
@@ -331,6 +333,10 @@ export default function App() {
               </p>
               <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
                 <pre>npm install @agentbar/react @agentbar/runtime</pre>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
+                <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">CLI</p>
+                <pre className="mt-2 whitespace-pre-wrap">{cliSnippet}</pre>
               </div>
             </div>
 
