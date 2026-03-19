@@ -15,7 +15,7 @@ npm install @arjun-shah/agentbar-react @arjun-shah/agentbar-runtime
 Install the CLI and generate your snippet:
 
 ```bash
-npm install -g @arjun-shah/agentbar-cli
+npm install -g agentbar-cli
 agentbar init
 ```
 

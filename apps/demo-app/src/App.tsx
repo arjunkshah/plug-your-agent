@@ -122,7 +122,7 @@ const hostApiSnippet = `export interface HostApi {
 
 const embedSnippet = `<script\n  src=\"https://your-deploy-url/agentbar.js\"\n  data-site=\"https://your-site.com\"\n  data-api=\"https://your-deploy-url\"\n  data-depth=\"2\"\n  data-max-pages=\"25\"\n  data-site-key=\"your-site-key\"\n></script>`;
 
-const cliSnippet = `npm install -g @arjun-shah/agentbar-cli\nagentbar init\nagentbar snippet`;
+const cliSnippet = `npm install -g agentbar-cli\nagentbar init\nagentbar snippet`;
 
 export default function App() {
   const [statusItems, setStatusItems] = useState<
