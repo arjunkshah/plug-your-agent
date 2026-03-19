@@ -1,0 +1,49 @@
+{
+  "name": "@agentbar/react",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Agent Plugin Bar React widget.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "sideEffects": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arjunkshah/plug-your-agent.git"
+  },
+  "keywords": [
+    "agent",
+    "ai",
+    "plugins",
+    "react",
+    "widget"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@agentbar/runtime": "file:../agent-runtime",
+    "@phosphor-icons/react": "^2.1.7"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.4.0"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "agent-plugin-bar",
+  "description": "Drop-in agent plugin system for app and web teams.",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arjunkshah/plug-your-agent.git"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm --prefix apps/demo-app run dev",
+    "build": "npm --prefix packages/agent-runtime run build && npm --prefix packages/react-widget run build && npm --prefix apps/demo-app run build",
+    "install:all": "npm --prefix packages/agent-runtime install && npm --prefix packages/react-widget install && npm --prefix apps/demo-app install",
+    "postinstall": "npm run install:all"
+  }
+}

@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Geist", "Satoshi", "DM Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+code {
+  font-family: "Geist Mono", "Satoshi", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+@layer utilities {
+  @keyframes fade-up {
+    0% {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: 0% 50%;
+    }
+    100% {
+      background-position: 100% 50%;
+    }
+  }
+
+  .animate-fade-up {
+    animation: fade-up 700ms ease-out both;
+  }
+
+  .animate-shimmer {
+    background-size: 200% 200%;
+    animation: shimmer 6s ease-in-out infinite;
+  }
+}

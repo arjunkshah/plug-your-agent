@@ -1,0 +1,38 @@
+{
+  "name": "@agentbar/runtime",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Agent Plugin Bar runtime and tool system.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "sideEffects": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arjunkshah/plug-your-agent.git"
+  },
+  "keywords": [
+    "agent",
+    "ai",
+    "tools",
+    "runtime"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
