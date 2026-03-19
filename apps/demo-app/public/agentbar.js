@@ -13,6 +13,19 @@
     return Number.isFinite(parsed) ? parsed : fallback;
   };
 
+  const toList = (value, fallback) => {
+    if (Array.isArray(value)) {
+      return value.filter(Boolean);
+    }
+    if (typeof value === "string") {
+      return value
+        .split(/[|,]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+    return fallback;
+  };
+
   const withUnit = (value, fallback) => {
     if (typeof value === "number") {
       return `${value}px`;
@@ -72,10 +85,18 @@
   const borderColor = config.borderColor || script?.dataset.borderColor || "#e2e8f0";
   const buttonBackground = config.buttonBackground || script?.dataset.buttonBackground || "#ffffff";
   const buttonTextColor = config.buttonTextColor || script?.dataset.buttonTextColor || textColor;
+  const accentTextColor = config.accentTextColor || script?.dataset.accentTextColor || themeColor;
   const panelWidth = withUnit(config.panelWidth ?? script?.dataset.panelWidth, "320px");
   const panelMaxHeight = withUnit(config.panelMaxHeight ?? script?.dataset.panelMaxHeight, "70vh");
   const panelRadius = withUnit(config.panelRadius ?? script?.dataset.panelRadius, "16px");
   const buttonRadius = withUnit(config.buttonRadius ?? script?.dataset.buttonRadius, "16px");
+  const inputPlaceholder =
+    config.inputPlaceholder || script?.dataset.inputPlaceholder || "Type a message";
+  const sendLabel = config.sendLabel || script?.dataset.sendLabel || "Send";
+  const suggestions = toList(
+    config.suggestions || script?.dataset.suggestions,
+    ["Search pricing", "Explain a feature", "Draft homepage copy"]
+  );
   const offsetX = toNumber(config.offsetX ?? script?.dataset.offsetX, 20);
   const offsetY = toNumber(config.offsetY ?? script?.dataset.offsetY, 20);
   const maxPages = toNumber(config.maxPages ?? script?.dataset.maxPages, 15);
@@ -120,6 +141,11 @@
     .agentbar-title { font-weight: 600; }
     .agentbar-subtitle { font-size: 11px; color: var(--agentbar-muted); margin-top: 2px; }
     .agentbar-body { padding: 12px 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .agentbar-empty { border: 1px dashed var(--agentbar-border); border-radius: 14px; padding: 12px; background: #f8fafc; }
+    .agentbar-empty-title { font-size: 12px; font-weight: 600; }
+    .agentbar-empty-subtitle { font-size: 11px; color: var(--agentbar-muted); margin-top: 4px; }
+    .agentbar-suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .agentbar-suggestion { border: 1px solid var(--agentbar-border); background: #ffffff; color: var(--agentbar-text); border-radius: 999px; padding: 6px 10px; font-size: 11px; cursor: pointer; }
     .agentbar-message { padding: 8px 10px; border-radius: 12px; font-size: 12px; line-height: 1.5; border: 1px solid var(--agentbar-border); background: #f8fafc; color: var(--agentbar-text); white-space: pre-wrap; }
     .agentbar-message.user { border-color: var(--agentbar-accent-border); background: var(--agentbar-accent-soft); color: var(--agentbar-accent-text); }
     .agentbar-footer { border-top: 1px solid var(--agentbar-border); padding: 12px 14px; display: flex; gap: 8px; }
@@ -147,8 +173,8 @@
         <div class="agentbar-body"></div>
         <div class="agentbar-status"></div>
         <div class="agentbar-footer">
-          <input class="agentbar-input" placeholder="Type a message" />
-          <button class="agentbar-send">Send</button>
+          <input class="agentbar-input" placeholder="${inputPlaceholder}" />
+          <button class="agentbar-send">${sendLabel}</button>
         </div>
       </div>
     </div>
@@ -167,6 +193,31 @@
     return;
   }
 
+  const emptyState = document.createElement("div");
+  emptyState.className = "agentbar-empty";
+  emptyState.innerHTML = `
+    <div class="agentbar-empty-title">Start a new conversation</div>
+    <div class="agentbar-empty-subtitle">Try one of these prompts to get started.</div>
+    <div class="agentbar-suggestions"></div>
+  `;
+
+  const suggestionsContainer = emptyState.querySelector(".agentbar-suggestions");
+  if (suggestionsContainer) {
+    suggestions.forEach((suggestion) => {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "agentbar-suggestion";
+      chip.textContent = suggestion;
+      chip.addEventListener("click", () => {
+        input.value = suggestion;
+        sendMessage();
+      });
+      suggestionsContainer.appendChild(chip);
+    });
+  }
+
+  body.appendChild(emptyState);
+
   root.style.setProperty("--agentbar-font", fontFamily);
   root.style.setProperty("--agentbar-accent", themeColor);
   root.style.setProperty("--agentbar-accent-soft", accentSoft);
@@ -180,6 +231,7 @@
   root.style.setProperty("--agentbar-button-bg", buttonBackground);
   root.style.setProperty("--agentbar-button-text", buttonTextColor);
   root.style.setProperty("--agentbar-input-bg", panelBackground);
+  root.style.setProperty("--agentbar-accent-text", accentTextColor);
   root.style.setProperty("--agentbar-panel-width", panelWidth);
   root.style.setProperty("--agentbar-panel-max-height", panelMaxHeight);
   root.style.setProperty("--agentbar-panel-radius", panelRadius);
@@ -206,6 +258,7 @@
   const appendMessage = (role, content) => {
     const message = { role, content };
     state.messages.push(message);
+    emptyState.style.display = "none";
     const item = document.createElement("div");
     item.className = `agentbar-message ${role}`;
     item.textContent = content;

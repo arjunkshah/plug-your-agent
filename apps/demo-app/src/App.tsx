@@ -120,7 +120,7 @@ const hostApiSnippet = `export interface HostApi {
   suggestCopy(area: string): Promise<string>;
 }`;
 
-const embedSnippet = `<script\n  src=\"https://your-deploy-url/agentbar.js\"\n  data-site=\"https://your-site.com\"\n  data-api=\"https://your-deploy-url\"\n  data-depth=\"2\"\n  data-max-pages=\"25\"\n  data-site-key=\"your-site-key\"\n  data-theme-color=\"#0ea5e9\"\n  data-font-family=\"Satoshi, ui-sans-serif\"\n  data-position=\"right\"\n  data-offset-y=\"24\"\n  data-open=\"false\"\n></script>`;
+const embedSnippet = `<script\n  src=\"https://your-deploy-url/agentbar.js\"\n  data-site=\"https://your-site.com\"\n  data-api=\"https://your-deploy-url\"\n  data-depth=\"2\"\n  data-max-pages=\"25\"\n  data-site-key=\"your-site-key\"\n  data-theme-color=\"#0ea5e9\"\n  data-font-family=\"Satoshi, ui-sans-serif\"\n  data-position=\"right\"\n  data-offset-y=\"24\"\n  data-input-placeholder=\"Ask about this page\"\n  data-suggestions=\"Search pricing | Summarize docs | Draft marketing copy\"\n  data-open=\"false\"\n></script>`;
 
 const cliSnippet = `npm install -g agentbar-cli\nagentbar init\nagentbar snippet`;
 

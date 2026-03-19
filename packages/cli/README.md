@@ -30,9 +30,13 @@ You can update appearance and behavior with `agentbar set`:
 
 ```bash
 agentbar set themeColor "#0ea5e9"
+agentbar set accentTextColor "#0f172a"
 agentbar set fontFamily "Satoshi, ui-sans-serif"
 agentbar set position right
 agentbar set offsetY 24
+agentbar set inputPlaceholder "Ask about this page"
+agentbar set sendLabel "Send"
+agentbar set suggestions "Search pricing | Summarize docs | Draft copy"
 agentbar set openOnLoad false
 agentbar set autoIngest true
 ```

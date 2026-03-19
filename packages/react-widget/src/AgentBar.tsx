@@ -20,6 +20,18 @@ export type AgentBarProps = {
   agents?: AgentPlugin[];
   position?: "left" | "right" | "bottom";
   llmProvider?: LLMProvider;
+  openOnLoad?: boolean;
+  closeOnOutsideClick?: boolean;
+  theme?: {
+    accent?: string;
+    background?: string;
+    text?: string;
+    muted?: string;
+    border?: string;
+    panelRadius?: string;
+    dockRadius?: string;
+    fontFamily?: string;
+  };
 };
 
 type AgentState = Record<string, AgentStep[]>;
@@ -46,6 +58,27 @@ const getIcon = (plugin: AgentPlugin) => {
   return mapped ?? iconMap[plugin.id as keyof typeof iconMap] ?? Sparkle;
 };
 
+const toRgba = (hex: string, alpha: number) => {
+  const clean = hex.replace("#", "").trim();
+  const normalized =
+    clean.length === 3
+      ? clean
+          .split("")
+          .map((char) => char + char)
+          .join("")
+      : clean;
+  if (normalized.length !== 6) {
+    return `rgba(5, 150, 105, ${alpha})`;
+  }
+  const r = Number.parseInt(normalized.slice(0, 2), 16);
+  const g = Number.parseInt(normalized.slice(2, 4), 16);
+  const b = Number.parseInt(normalized.slice(4, 6), 16);
+  if ([r, g, b].some((value) => Number.isNaN(value))) {
+    return `rgba(5, 150, 105, ${alpha})`;
+  }
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 export const AgentBar: React.FC<AgentBarProps> = ({
   apiSchema,
   hostApi,
@@ -53,6 +86,9 @@ export const AgentBar: React.FC<AgentBarProps> = ({
   agents,
   position = "right",
   llmProvider,
+  openOnLoad,
+  closeOnOutsideClick = true,
+  theme,
 }) => {
   const enabledPlugins = useMemo(() => {
     const source = agents ?? defaultPlugins;
@@ -62,12 +98,13 @@ export const AgentBar: React.FC<AgentBarProps> = ({
   const [activeAgentId, setActiveAgentId] = useState<string | null>(
     enabledPlugins[0]?.id ?? null
   );
-  const [isOpen, setIsOpen] = useState(enabledPlugins.length > 0);
+  const [isOpen, setIsOpen] = useState(openOnLoad ?? enabledPlugins.length > 0);
   const [messages, setMessages] = useState<AgentState>({});
   const [status, setStatus] = useState<AgentStatus>({});
   const [inputs, setInputs] = useState<Record<string, string>>({});
   const [panelOffsetY, setPanelOffsetY] = useState(0);
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const dockRef = useRef<HTMLDivElement | null>(null);
   const dragState = useRef<{ startY: number; startOffset: number } | null>(null);
 
   const sessionMap = useRef(new Map<string, ReturnType<typeof createAgentSession>>());
@@ -90,6 +127,24 @@ export const AgentBar: React.FC<AgentBarProps> = ({
   useEffect(() => {
     setPanelOffsetY(0);
   }, [position]);
+
+  useEffect(() => {
+    if (!closeOnOutsideClick) {
+      return;
+    }
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) {
+        return;
+      }
+      if (panelRef.current?.contains(target) || dockRef.current?.contains(target)) {
+        return;
+      }
+      setIsOpen(false);
+    };
+    document.addEventListener("click", handleOutsideClick);
+    return () => document.removeEventListener("click", handleOutsideClick);
+  }, [closeOnOutsideClick]);
 
   const getSession = (plugin: AgentPlugin) => {
     if (!sessionMap.current.has(plugin.id)) {
@@ -131,6 +186,26 @@ export const AgentBar: React.FC<AgentBarProps> = ({
       : {
           top: panelBaseTop + panelOffsetY,
         };
+
+  const themeVars = useMemo(
+    () => {
+      const accent = theme?.accent ?? "#059669";
+      return {
+        "--agentbar-accent": accent,
+        "--agentbar-accent-soft": toRgba(accent, 0.12),
+        "--agentbar-accent-strong": toRgba(accent, 0.2),
+        "--agentbar-accent-border": toRgba(accent, 0.3),
+        "--agentbar-panel-bg": theme?.background ?? "rgba(255,255,255,0.95)",
+        "--agentbar-text": theme?.text ?? "#0f172a",
+        "--agentbar-muted": theme?.muted ?? "#64748b",
+        "--agentbar-border": theme?.border ?? "rgba(226,232,240,0.8)",
+        "--agentbar-panel-radius": theme?.panelRadius ?? "16px",
+        "--agentbar-dock-radius": theme?.dockRadius ?? "16px",
+        fontFamily: theme?.fontFamily ?? "inherit",
+      };
+    },
+    [theme]
+  ) as React.CSSProperties;
 
   const stopDrag = useCallback(() => {
     dragState.current = null;
@@ -235,9 +310,10 @@ export const AgentBar: React.FC<AgentBarProps> = ({
 
   return (
     <>
-      <div className={`fixed ${dockPosition} z-30 pointer-events-none`}>
+      <div ref={dockRef} className={`fixed ${dockPosition} z-30 pointer-events-none`}>
         <div
-          className={`pointer-events-auto flex ${dockLayout} items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/90 px-2 py-3 shadow-[0_20px_50px_-40px_rgba(15,23,42,0.25)] backdrop-blur`}
+          style={themeVars}
+          className={`pointer-events-auto flex ${dockLayout} items-center gap-2 rounded-[var(--agentbar-dock-radius)] border border-[color:var(--agentbar-border)] bg-[color:var(--agentbar-panel-bg)] px-2 py-3 text-[color:var(--agentbar-text)] shadow-[0_20px_50px_-40px_rgba(15,23,42,0.25)] backdrop-blur`}
         >
           {enabledPlugins.map((plugin) => {
             const Icon = getIcon(plugin);
@@ -249,9 +325,9 @@ export const AgentBar: React.FC<AgentBarProps> = ({
                 aria-pressed={isActive}
                 aria-label={`${plugin.name} agent`}
                 onClick={() => handleAgentClick(plugin.id)}
-                className={`flex h-10 w-10 items-center justify-center rounded-xl border border-transparent text-slate-600 transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 ${
+                className={`flex h-10 w-10 items-center justify-center rounded-xl border border-transparent text-[color:var(--agentbar-muted)] transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--agentbar-accent-border)] ${
                   isActive
-                    ? "bg-emerald-600/10 text-emerald-700"
+                    ? "bg-[color:var(--agentbar-accent-soft)] text-[color:var(--agentbar-accent)]"
                     : "bg-slate-100 hover:bg-slate-200/80"
                 } active:translate-y-[1px]`}
               >
@@ -265,24 +341,26 @@ export const AgentBar: React.FC<AgentBarProps> = ({
       {activeAgent && isOpen ? (
         <div
           ref={panelRef}
-          style={panelStyle}
-          className={`fixed ${panelPosition} z-20 w-[92vw] max-w-[400px] rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-[0_35px_70px_-50px_rgba(15,23,42,0.35)] backdrop-blur sm:w-[400px]`}
+          style={{ ...panelStyle, ...themeVars }}
+          className={`fixed ${panelPosition} z-20 w-[92vw] max-w-[400px] rounded-[var(--agentbar-panel-radius)] border border-[color:var(--agentbar-border)] bg-[color:var(--agentbar-panel-bg)] p-4 text-[color:var(--agentbar-text)] shadow-[0_35px_70px_-50px_rgba(15,23,42,0.35)] backdrop-blur sm:w-[400px]`}
         >
           <div
             onPointerDown={handleDragStart}
-            className="flex cursor-grab flex-col gap-3 border-b border-slate-200 pb-4 active:cursor-grabbing"
+            className="flex cursor-grab flex-col gap-3 border-b border-[color:var(--agentbar-border)] pb-4 active:cursor-grabbing"
           >
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-100 text-slate-700">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[color:var(--agentbar-border)] bg-slate-50 text-[color:var(--agentbar-text)]">
                   {(() => {
                     const Icon = getIcon(activeAgent);
                     return <Icon size={20} weight="fill" />;
                   })()}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">{activeAgent.name}</p>
-                  <p className="text-xs text-slate-500">{activeAgent.description}</p>
+                  <p className="text-sm font-semibold text-[color:var(--agentbar-text)]">
+                    {activeAgent.name}
+                  </p>
+                  <p className="text-xs text-[color:var(--agentbar-muted)]">{activeAgent.description}</p>
                 </div>
               </div>
               <button
@@ -295,11 +373,11 @@ export const AgentBar: React.FC<AgentBarProps> = ({
                 <X size={16} />
               </button>
             </div>
-            <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-slate-500">
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
+            <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-[color:var(--agentbar-muted)]">
+              <span className="rounded-full border border-[color:var(--agentbar-border)] bg-slate-50 px-2 py-1">
                 Tools {activeAgent.tools.length}
               </span>
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
+              <span className="rounded-full border border-[color:var(--agentbar-border)] bg-slate-50 px-2 py-1">
                 Host API {hostEndpoints.length}
               </span>
             </div>
@@ -311,32 +389,35 @@ export const AgentBar: React.FC<AgentBarProps> = ({
                 {activeAgent.tools.map((tool) => (
                   <span
                     key={tool.name}
-                    className="rounded-full border border-emerald-600/20 bg-emerald-600/10 px-3 py-1 text-emerald-700"
+                    className="rounded-full border border-[color:var(--agentbar-accent-border)] bg-[color:var(--agentbar-accent-soft)] px-3 py-1 text-[color:var(--agentbar-accent)]"
                   >
                     {tool.name}
                   </span>
                 ))}
               </div>
             ) : (
-              <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-slate-500">
+              <p className="rounded-xl border border-dashed border-[color:var(--agentbar-border)] bg-slate-50 px-3 py-2 text-[color:var(--agentbar-muted)]">
                 No tools are configured for this agent yet.
               </p>
             )}
             {hostEndpoints.length > 0 ? (
-              <div className="flex flex-wrap gap-2 text-[11px] text-slate-500">
+              <div className="flex flex-wrap gap-2 text-[11px] text-[color:var(--agentbar-muted)]">
                 {hostEndpoints.slice(0, 6).map((endpoint) => (
-                  <span key={endpoint} className="rounded-full border border-slate-200 px-2 py-1">
+                  <span
+                    key={endpoint}
+                    className="rounded-full border border-[color:var(--agentbar-border)] px-2 py-1"
+                  >
                     {endpoint}
                   </span>
                 ))}
                 {hostEndpoints.length > 6 ? (
-                  <span className="rounded-full border border-slate-200 px-2 py-1 text-slate-400">
+                  <span className="rounded-full border border-[color:var(--agentbar-border)] px-2 py-1 text-slate-400">
                     +{hostEndpoints.length - 6} more
                   </span>
                 ) : null}
               </div>
             ) : (
-              <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-slate-500">
+              <p className="rounded-xl border border-dashed border-[color:var(--agentbar-border)] bg-slate-50 px-3 py-2 text-[color:var(--agentbar-muted)]">
                 No host API endpoints connected. Provide functions on the hostApi prop to enable tool
                 calls.
               </p>
@@ -345,9 +426,9 @@ export const AgentBar: React.FC<AgentBarProps> = ({
 
           <div className="mt-3 flex max-h-[52vh] flex-col gap-3 overflow-y-auto pr-1">
             {(messages[activeAgent.id] ?? []).length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-xs text-slate-500">
-                <p className="font-semibold text-slate-700">Start a new thread</p>
-                <p className="mt-1 text-slate-500">
+              <div className="rounded-2xl border border-dashed border-[color:var(--agentbar-border)] bg-slate-50 px-4 py-6 text-xs text-[color:var(--agentbar-muted)]">
+                <p className="font-semibold text-[color:var(--agentbar-text)]">Start a new thread</p>
+                <p className="mt-1 text-[color:var(--agentbar-muted)]">
                   Ask for help, request a task, or explore what this agent can do.
                 </p>
                 <div className="mt-3 grid gap-2 text-[11px] uppercase tracking-[0.2em] text-slate-400">
@@ -368,13 +449,13 @@ export const AgentBar: React.FC<AgentBarProps> = ({
                       <div
                         className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
                           step.role === "user"
-                            ? "border border-emerald-600/30 bg-emerald-600/10 text-emerald-700"
-                            : "border border-slate-200 bg-slate-50 text-slate-700"
-                        }`}
-                      >
-                        <pre className="whitespace-pre-wrap font-sans">{step.content}</pre>
-                      </div>
+                          ? "border border-[color:var(--agentbar-accent-border)] bg-[color:var(--agentbar-accent-soft)] text-[color:var(--agentbar-accent)]"
+                          : "border border-[color:var(--agentbar-border)] bg-slate-50 text-[color:var(--agentbar-text)]"
+                      }`}
+                    >
+                      <pre className="whitespace-pre-wrap font-sans">{step.content}</pre>
                     </div>
+                  </div>
                   )}
                 </div>
               ))
@@ -393,8 +474,11 @@ export const AgentBar: React.FC<AgentBarProps> = ({
             ) : null}
           </div>
 
-          <div className="mt-4 border-t border-slate-200 pt-3">
-            <label className="text-[11px] uppercase tracking-[0.2em] text-slate-500" htmlFor={inputId}>
+          <div className="mt-4 border-t border-[color:var(--agentbar-border)] pt-3">
+            <label
+              className="text-[11px] uppercase tracking-[0.2em] text-[color:var(--agentbar-muted)]"
+              htmlFor={inputId}
+            >
               Message
             </label>
             <div className="mt-2 flex items-center gap-2">
@@ -412,13 +496,13 @@ export const AgentBar: React.FC<AgentBarProps> = ({
                   }
                 }}
                 placeholder={`Ask ${activeAgent.name}...`}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500/60 focus:outline-none"
+                className="w-full rounded-xl border border-[color:var(--agentbar-border)] bg-white px-3 py-2 text-sm text-[color:var(--agentbar-text)] placeholder:text-slate-400 focus:border-[color:var(--agentbar-accent-border)] focus:outline-none"
               />
               <button
                 type="button"
                 onClick={handleSend}
                 disabled={status[activeAgent.id]?.sending}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-600/30 bg-emerald-600/10 text-emerald-700 transition hover:bg-emerald-600/20 disabled:cursor-not-allowed disabled:opacity-50 active:translate-y-[1px]"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[color:var(--agentbar-accent-border)] bg-[color:var(--agentbar-accent-soft)] text-[color:var(--agentbar-accent)] transition hover:bg-[color:var(--agentbar-accent-strong)] disabled:cursor-not-allowed disabled:opacity-50 active:translate-y-[1px]"
               >
                 <PaperPlaneRight size={18} />
               </button>

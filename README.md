@@ -58,6 +58,16 @@ const llmProvider = createProxyProvider({
   apiSchema={apiSchema}
   hostApi={hostApi}
   enabledAgents={["support", "onboarding", "content"]}
+  theme={{
+    accent: "#0ea5e9",
+    background: "rgba(255,255,255,0.96)",
+    text: "#0f172a",
+    muted: "#64748b",
+    border: "rgba(226,232,240,0.8)",
+    panelRadius: "18px",
+    dockRadius: "16px",
+    fontFamily: "Satoshi, ui-sans-serif",
+  }}
   position="right"
   llmProvider={llmProvider}
 />;
@@ -103,12 +113,16 @@ agentbar snippet
 - `data-border-color` - border color.
 - `data-button-background` - launcher background color.
 - `data-button-text-color` - launcher text/icon color.
+- `data-accent-text-color` - user message text color.
 - `data-panel-width` - panel width (e.g. `360px`).
 - `data-panel-max-height` - panel max height (e.g. `70vh`).
 - `data-panel-radius` - panel corner radius (e.g. `18px`).
 - `data-button-radius` - launcher corner radius (e.g. `999px`).
 - `data-offset-x` - horizontal offset in px.
 - `data-offset-y` - vertical offset in px.
+- `data-input-placeholder` - input placeholder copy.
+- `data-send-label` - send button label.
+- `data-suggestions` - pipe or comma separated suggested prompts.
 - `data-title` - widget title.
 - `data-subtitle` - widget subtitle.
 - `data-button-label` - optional launcher label (defaults to icon only).

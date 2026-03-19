@@ -23,12 +23,16 @@ const DEFAULT_CONFIG = {
   borderColor: "#e2e8f0",
   buttonBackground: "#ffffff",
   buttonTextColor: "#0f172a",
+  accentTextColor: "",
   panelWidth: "320px",
   panelMaxHeight: "70vh",
   panelRadius: "16px",
   buttonRadius: "16px",
   offsetX: 20,
   offsetY: 20,
+  inputPlaceholder: "Type a message",
+  sendLabel: "Send",
+  suggestions: ["Search pricing", "Explain a feature", "Draft homepage copy"],
   openOnLoad: false,
   autoIngest: true,
   closeOnOutsideClick: true,
@@ -100,6 +104,9 @@ const renderSnippet = (config) => {
   if (config.buttonTextColor) {
     lines.push(`  data-button-text-color=\"${config.buttonTextColor}\"`);
   }
+  if (config.accentTextColor) {
+    lines.push(`  data-accent-text-color=\"${config.accentTextColor}\"`);
+  }
   if (config.panelWidth) {
     lines.push(`  data-panel-width=\"${config.panelWidth}\"`);
   }
@@ -117,6 +124,15 @@ const renderSnippet = (config) => {
   }
   if (typeof config.offsetY === "number") {
     lines.push(`  data-offset-y=\"${config.offsetY}\"`);
+  }
+  if (config.inputPlaceholder) {
+    lines.push(`  data-input-placeholder=\"${config.inputPlaceholder}\"`);
+  }
+  if (config.sendLabel) {
+    lines.push(`  data-send-label=\"${config.sendLabel}\"`);
+  }
+  if (config.suggestions?.length) {
+    lines.push(`  data-suggestions=\"${config.suggestions.join(" | ")}\"`);
   }
   if (config.openOnLoad) {
     lines.push(`  data-open=\"${config.openOnLoad}\"`);
@@ -147,9 +163,12 @@ const printHelp = () => {
     "  buttonLabel, fontFamily, panelBackground, textColor, mutedTextColor, borderColor,"
   );
   console.log(
-    "  buttonBackground, buttonTextColor, panelWidth, panelMaxHeight, panelRadius, buttonRadius,"
+    "  buttonBackground, buttonTextColor, accentTextColor, panelWidth, panelMaxHeight, panelRadius,"
   );
-  console.log("  offsetX, offsetY, openOnLoad, autoIngest, closeOnOutsideClick\n");
+  console.log(
+    "  offsetX, offsetY, inputPlaceholder, sendLabel, suggestions, openOnLoad, autoIngest,"
+  );
+  console.log("  closeOnOutsideClick\n");
   console.log(`Config file: ${configPath}`);
 };
 
@@ -183,6 +202,17 @@ const init = async () => {
     config.subtitle = await ask(rl, "Widget subtitle", config.subtitle);
     config.buttonLabel = await ask(rl, "Button label", config.buttonLabel);
     config.fontFamily = await ask(rl, "Font family", config.fontFamily);
+    config.inputPlaceholder = await ask(rl, "Input placeholder", config.inputPlaceholder);
+    config.sendLabel = await ask(rl, "Send button label", config.sendLabel);
+    const suggestionInput = await ask(
+      rl,
+      "Suggestions (pipe or comma separated)",
+      config.suggestions.join(" | ")
+    );
+    config.suggestions = suggestionInput
+      .split(/[|,]/)
+      .map((value) => value.trim())
+      .filter(Boolean);
     config.openOnLoad = (await ask(rl, "Open on load (true/false)", String(config.openOnLoad))) === "true";
     config.autoIngest = (await ask(rl, "Auto ingest (true/false)", String(config.autoIngest))) === "true";
   } finally {
@@ -225,6 +255,11 @@ const setValue = (key, value) => {
     config[key] = parsed;
   } else if (key === "openOnLoad" || key === "autoIngest" || key === "closeOnOutsideClick") {
     config[key] = value === "true" || value === true;
+  } else if (key === "suggestions") {
+    config[key] = String(value)
+      .split(/[|,]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
   } else {
     config[key] = value;
   }
