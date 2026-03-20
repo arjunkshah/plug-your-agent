@@ -128,6 +128,14 @@ const isAllowedByRobots = (url: string, disallows: string[], allowAll: boolean) 
 const isHtmlResponse = (contentType: string | null) =>
   contentType ? contentType.includes("text/html") : true;
 
+const normalizeUrl = (raw: string) => {
+  try {
+    return new URL(raw).toString();
+  } catch (_error) {
+    return new URL(`https://${raw}`).toString();
+  }
+};
+
 export default async function handler(req: any, res: any) {
   setCors(res);
   if (req.method === "OPTIONS") {
@@ -147,9 +155,11 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
+    const normalizedUrl = normalizeUrl(url);
     const depthLimit = Number.isFinite(depth) ? Math.max(0, Number(depth)) : 1;
     const maxLimit = Number.isFinite(maxPages) ? Math.max(1, Number(maxPages)) : 15;
-    const cacheKey = siteKey && typeof siteKey === "string" ? siteKey : new URL(url).hostname;
+    const cacheKey =
+      siteKey && typeof siteKey === "string" ? siteKey : new URL(normalizedUrl).hostname;
 
     if (!force && store.has(cacheKey)) {
       const cached = store.get(cacheKey);
@@ -159,13 +169,13 @@ export default async function handler(req: any, res: any) {
 
     const urls: string[] = [];
     const visited = new Set<string>();
-    const queue: Array<{ url: string; depth: number }> = [{ url, depth: 0 }];
+    const queue: Array<{ url: string; depth: number }> = [{ url: normalizedUrl, depth: 0 }];
 
-    const sitemapUrl = new URL("/sitemap.xml", url).toString();
+    const sitemapUrl = new URL("/sitemap.xml", normalizedUrl).toString();
     let robots = { disallows: [] as string[], allowAll: true };
 
     try {
-      const robotsResponse = await fetch(new URL("/robots.txt", url).toString(), {
+      const robotsResponse = await fetch(new URL("/robots.txt", normalizedUrl).toString(), {
         headers: {
           "User-Agent": "AgentPluginBar/1.0",
         },
@@ -196,7 +206,7 @@ export default async function handler(req: any, res: any) {
 
     const texts: string[] = [];
     const pages: DocPage[] = [];
-    const origin = new URL(url).origin;
+    const origin = new URL(normalizedUrl).origin;
 
     while (queue.length && urls.length < maxLimit) {
       const next = queue.shift();
@@ -257,7 +267,7 @@ export default async function handler(req: any, res: any) {
     const chunks = chunkText(combinedText).slice(0, 200);
 
     store.set(cacheKey, {
-      url,
+      url: normalizedUrl,
       chunks,
       pages,
       updatedAt: Date.now(),

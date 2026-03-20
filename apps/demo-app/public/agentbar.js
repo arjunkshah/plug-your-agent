@@ -59,7 +59,17 @@
   };
 
   const apiBase = (config.apiBase || script?.dataset.api || window.location.origin).replace(/\/$/, "");
-  const siteUrl = config.siteUrl || script?.dataset.site || window.location.origin;
+  const rawSiteUrl = config.siteUrl || script?.dataset.site || window.location.origin;
+  const normalizeSiteUrl = (value) => {
+    if (typeof value !== "string") {
+      return window.location.origin;
+    }
+    if (value.startsWith("http://") || value.startsWith("https://")) {
+      return value;
+    }
+    return `https://${value}`;
+  };
+  const siteUrl = normalizeSiteUrl(rawSiteUrl);
   const siteKey = config.siteKey || script?.dataset.siteKey || "";
   const position = config.position || script?.dataset.position || "right";
   const title = config.title || script?.dataset.title || "Site Assistant";

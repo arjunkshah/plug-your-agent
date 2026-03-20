@@ -55,6 +55,14 @@ const buildContext = (chunks: string[], question: string) => {
   return ranked.join("\n\n---\n\n").slice(0, 4000);
 };
 
+const normalizeUrl = (raw: string) => {
+  try {
+    return new URL(raw).toString();
+  } catch (_error) {
+    return new URL(`https://${raw}`).toString();
+  }
+};
+
 export default async function handler(req: any, res: any) {
   setCors(res);
   if (req.method === "OPTIONS") {
@@ -88,7 +96,9 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const key = siteKey && typeof siteKey === "string" ? siteKey : new URL(siteUrl).hostname;
+  const normalizedSiteUrl = normalizeUrl(siteUrl);
+  const key =
+    siteKey && typeof siteKey === "string" ? siteKey : new URL(normalizedSiteUrl).hostname;
   const docStore = store.get(key);
   const context = docStore ? buildContext(docStore.chunks, userMessage) : "";
 
