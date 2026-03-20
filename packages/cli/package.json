@@ -1,10 +1,10 @@
 {
   "name": "@arjun-shah/agentbar-cli",
-  "version": "0.1.6",
+  "version": "0.1.8",
   "type": "module",
   "description": "Agent Plugin Bar CLI helper.",
   "bin": {
-    "agentbar": "./bin/agentbar.js"
+    "agentbar": "bin/agentbar.js"
   },
   "files": [
     "bin"
@@ -12,7 +12,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/arjunkshah/plug-your-agent.git"
+    "url": "git+https://github.com/arjunkshah/plug-your-agent.git"
   },
   "keywords": [
     "agent",
