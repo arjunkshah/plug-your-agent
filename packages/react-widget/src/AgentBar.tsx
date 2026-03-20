@@ -392,26 +392,73 @@ export const AgentBar: React.FC<AgentBarProps> = ({
       return;
     }
 
-    setInputs((prev) => ({ ...prev, [activeAgent.id]: "" }));
+    const agentId = activeAgent.id;
+    setInputs((prev) => ({ ...prev, [agentId]: "" }));
+    setMessages((prev) => ({
+      ...prev,
+      [agentId]: [...(prev[agentId] ?? []), { role: "user", content: currentInput }],
+    }));
     setStatus((prev) => ({
       ...prev,
-      [activeAgent.id]: {
+      [agentId]: {
         sending: true,
         error: null,
       },
     }));
 
+    let streamingIndex: number | null = null;
+    const handleToken = (token: string) => {
+      if (!token) {
+        return;
+      }
+      setMessages((prev) => {
+        const current = [...(prev[agentId] ?? [])];
+        if (streamingIndex === null) {
+          streamingIndex = current.length;
+          current.push({ role: "assistant", content: token });
+        } else {
+          const existing = current[streamingIndex];
+          current[streamingIndex] = {
+            ...existing,
+            content: `${existing?.content ?? ""}${token}`,
+          };
+        }
+        return { ...prev, [agentId]: current };
+      });
+    };
+
     try {
-      const steps = await getSession(activeAgent).sendMessage(currentInput);
+      const steps = await getSession(activeAgent).sendMessage(currentInput, {
+        onToken: handleToken,
+      });
       setMessages((prev) => ({
         ...prev,
-        [activeAgent.id]: [...(prev[activeAgent.id] ?? []), ...steps],
+        [agentId]: [
+          ...(() => {
+            const current = [...(prev[agentId] ?? [])];
+            if (streamingIndex !== null && current[streamingIndex]?.role === "assistant") {
+              current.splice(streamingIndex, 1);
+            }
+            return current;
+          })(),
+          ...steps.filter((step, index) => !(index === 0 && step.role === "user")),
+        ],
       }));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
+      const index = streamingIndex;
+      if (index !== null) {
+        setMessages((prev) => {
+          const current = [...(prev[agentId] ?? [])];
+          if (current[index]?.role === "assistant") {
+            current.splice(index, 1);
+          }
+          return { ...prev, [agentId]: current };
+        });
+      }
       setStatus((prev) => ({
         ...prev,
-        [activeAgent.id]: {
+        [agentId]: {
           sending: false,
           error: message,
         },
@@ -421,7 +468,7 @@ export const AgentBar: React.FC<AgentBarProps> = ({
 
     setStatus((prev) => ({
       ...prev,
-      [activeAgent.id]: {
+      [agentId]: {
         sending: false,
         error: null,
       },

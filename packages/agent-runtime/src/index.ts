@@ -47,7 +47,10 @@ export interface AgentPlugin {
 }
 
 export interface AgentSession {
-  sendMessage: (userMessage: string) => Promise<AgentStep[]>;
+  sendMessage: (
+    userMessage: string,
+    options?: { onToken?: (token: string) => void }
+  ) => Promise<AgentStep[]>;
 }
 
 export type LLMRole = "system" | "user" | "assistant";
@@ -63,6 +66,11 @@ export interface LLMProvider {
     tools: ToolDefinition[];
     plugin: AgentPlugin;
   }) => Promise<string>;
+  generateStream?: (input: {
+    messages: LLMMessage[];
+    tools: ToolDefinition[];
+    plugin: AgentPlugin;
+  }) => AsyncIterable<string>;
 }
 
 export interface CreateAgentSessionOptions {
@@ -143,6 +151,77 @@ export const createProxyProvider = ({
 
       const data = (await response.json()) as { content?: string };
       return data.content?.trim() ?? "";
+    },
+    generateStream: async function* ({ messages }) {
+      const resolvedSiteUrl =
+        siteUrl ?? (typeof window !== "undefined" ? window.location.origin : undefined);
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(headers ?? {}),
+        },
+        body: JSON.stringify({
+          siteUrl: resolvedSiteUrl,
+          stream: true,
+          messages,
+        }),
+      });
+
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(`Proxy error: ${response.status} ${detail}`);
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+      if (!contentType.includes("text/event-stream")) {
+        const data = (await response.json()) as { content?: string };
+        if (data.content) {
+          yield data.content;
+        }
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          break;
+        }
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) {
+            continue;
+          }
+          const payload = trimmed.replace(/^data:\s*/, "");
+          if (payload === "[DONE]") {
+            return;
+          }
+          try {
+            const parsed = JSON.parse(payload) as {
+              token?: string;
+              choices?: Array<{ delta?: { content?: string } }>;
+            };
+            const token = parsed.token ?? parsed.choices?.[0]?.delta?.content;
+            if (token) {
+              yield token;
+            }
+          } catch (_error) {
+            // Ignore parse errors.
+          }
+        }
+      }
     },
   };
 };
@@ -353,15 +432,45 @@ export const createAgentSession = (
   const history: AgentStep[] = [];
 
   return {
-    sendMessage: async (userMessage: string) => {
+    sendMessage: async (userMessage: string, sendOptions) => {
       const steps: AgentStep[] = [];
       const userStep: AgentStep = { role: "user", content: userMessage };
       steps.push(userStep);
 
       let llmReply: string | null = null;
       let parsedTool: { name: string; input: unknown } | null = null;
+      const onToken = sendOptions?.onToken;
+      const canStream = Boolean(onToken && options.llmProvider?.generateStream);
 
-      if (options.llmProvider) {
+      const generateWithProvider = async (
+        messages: LLMMessage[],
+        streamCallback?: (token: string) => void
+      ) => {
+        if (!options.llmProvider) {
+          return "";
+        }
+        if (streamCallback && options.llmProvider.generateStream) {
+          let content = "";
+          for await (const token of options.llmProvider.generateStream({
+            messages,
+            tools: plugin.tools,
+            plugin,
+          })) {
+            content += token;
+            streamCallback(token);
+          }
+          return content.trim();
+        }
+
+        const response = await options.llmProvider.generate({
+          messages,
+          tools: plugin.tools,
+          plugin,
+        });
+        return response?.trim() ?? "";
+      };
+
+      if (options.llmProvider && !canStream) {
         try {
           llmReply = await options.llmProvider.generate({
             messages: buildLLMMessages(plugin, [...history, userStep]),
@@ -397,9 +506,21 @@ export const createAgentSession = (
       }
 
       if (!toolName) {
-        const assistantContent = llmReply
-          ? llmReply
-          : "I can help with that. Try asking for a task like searching docs or drafting copy.";
+        let assistantContent = llmReply ?? "";
+        if (!assistantContent && options.llmProvider) {
+          try {
+            assistantContent = await generateWithProvider(
+              buildLLMMessages(plugin, [...history, userStep]),
+              canStream ? onToken : undefined
+            );
+          } catch {
+            assistantContent = "";
+          }
+        }
+        if (!assistantContent) {
+          assistantContent =
+            "I can help with that. Try asking for a task like searching docs or drafting copy.";
+        }
         steps.push({
           role: "assistant",
           content: assistantContent,
@@ -433,18 +554,21 @@ export const createAgentSession = (
 
         let assistantContent = formatAssistantReply(toolName, toolResult);
         if (options.llmProvider) {
-          const followup = await options.llmProvider.generate({
-            messages: buildLLMMessages(plugin, [...history, userStep, toolStep], {
-              disableTools: true,
-              followupUserMessage:
-                "Summarize the tool result for the user with clear next steps. Do not call tools.",
-            }),
-            tools: plugin.tools,
-            plugin,
-          });
+          try {
+            const followup = await generateWithProvider(
+              buildLLMMessages(plugin, [...history, userStep, toolStep], {
+                disableTools: true,
+                followupUserMessage:
+                  "Summarize the tool result for the user with clear next steps. Do not call tools.",
+              }),
+              canStream ? onToken : undefined
+            );
 
-          if (followup) {
-            assistantContent = followup;
+            if (followup) {
+              assistantContent = followup;
+            }
+          } catch {
+            // Keep formatted tool reply.
           }
         }
 

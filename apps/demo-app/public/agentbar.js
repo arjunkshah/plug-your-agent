@@ -620,9 +620,30 @@
       });
 
       if (!response.ok || !response.body) {
+        if (typingEl.parentElement) {
+          typingEl.remove();
+        }
         appendMessage("assistant", "Something went wrong. Try again soon.");
         state.loading = false;
         setStatus("");
+        updateScrollButton();
+        return;
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+      if (!contentType.includes("text/event-stream")) {
+        if (typingEl.parentElement) {
+          typingEl.remove();
+        }
+        const data = await response.json().catch(() => ({}));
+        const content =
+          typeof data?.content === "string" && data.content.trim()
+            ? data.content.trim()
+            : "Something went wrong. Try again soon.";
+        appendMessage("assistant", content);
+        state.loading = false;
+        setStatus("");
+        updateScrollButton();
         return;
       }
 
