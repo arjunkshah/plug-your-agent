@@ -75,7 +75,7 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const apiKey = process.env.GROQ_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY?.trim();
   if (!apiKey) {
     res.status(500).json({ error: "Missing GROQ_API_KEY" });
     return;
