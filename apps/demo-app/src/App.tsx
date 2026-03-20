@@ -346,14 +346,14 @@ export default function App() {
               {/* Badge */}
               <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[12px] text-white/60">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#0ea5e9]" />
-                <span>Now with AI-powered responses</span>
+                <span>Hosted settings + streaming answers</span>
               </div>
 
               {/* Headline */}
               <h1 className="text-[42px] leading-[1.15] font-semibold tracking-tight text-white lg:text-[56px]">
-                Build intelligent
+                Build product assistants
                 <br />
-                <span className="text-[#0ea5e9]">product assistants</span>
+                <span className="text-[#0ea5e9]">that know your site</span>
               </h1>
 
               {/* Subheadline */}
@@ -432,54 +432,79 @@ export default function App() {
             <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr]">
               <div className="space-y-5">
                 <p className="text-[12px] font-medium uppercase tracking-widest text-[#0ea5e9]">Features</p>
-                <h2 className="text-[32px] font-semibold text-white">The full end-state in one list.</h2>
+                <h2 className="text-[32px] font-semibold text-white">The end-state checklist.</h2>
                 <p className="text-[15px] leading-relaxed text-white/50">
-                  Every capability required for a production-grade assistant dock. Hosted config,
-                  safe tool calls, and an embed that stays short forever.
+                  A production-ready assistant dock needs hosted config, safe tool calls, ingest, and
+                  a UI that feels native to the product. Everything is listed below.
                 </p>
               </div>
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02]">
+              <div className="grid gap-4 sm:grid-cols-2">
                 {[
-                  { title: "One-line embed", detail: "Hosted settings load by site key so the script tag stays minimal.", tag: "Embed" },
-                  { title: "Hosted dashboard", detail: "Edit greeting, colors, position, and suggestions without redeploying.", tag: "Admin" },
-                  { title: "CLI bootstrap", detail: "Register a site URL once and sync config immediately.", tag: "DX" },
-                  { title: "Auto-ingest crawl", detail: "Background indexing via sitemap and same-origin discovery.", tag: "Ingest" },
-                  { title: "Client snapshot", detail: "Captures rendered page text for SPAs and gated content.", tag: "Ingest" },
-                  { title: "Streaming responses", detail: "Token streaming from Groq for instant feedback.", tag: "AI" },
-                  { title: "Multi-site tenancy", detail: "Site keys isolate content across multiple domains.", tag: "Scale" },
-                  { title: "Typed tool calls", detail: "Agents call HostApi methods only, never arbitrary fetch.", tag: "Safety" },
-                  { title: "Agent plugins", detail: "Support, onboarding, and content agents included.", tag: "Core" },
-                  { title: "Custom agents", detail: "Bring your own system prompt, tools, and UI surface.", tag: "Core" },
-                  { title: "Dock placement", detail: "Left, right, or bottom placement with responsive behavior.", tag: "UX" },
-                  { title: "Theme controls", detail: "Accent, background, and text overrides for brand alignment.", tag: "UX" },
-                  { title: "Data-attribute overrides", detail: "Per-page overrides without changing hosted settings.", tag: "Embed" },
-                  { title: "Launcher badge", detail: "Optional badge for attention cues and status labels.", tag: "UX" },
-                  { title: "Draggable launcher", detail: "Drag and persist the dock position per site.", tag: "UX" },
-                  { title: "Session persistence", detail: "Store chat history locally by site key.", tag: "UX" },
-                  { title: "Per-agent history", detail: "Isolated sessions for each enabled agent in the React widget.", tag: "Core" },
-                  { title: "Tool usage markers", detail: "Inline tool-call annotations for transparency.", tag: "UX" },
-                  { title: "Accessible UI", detail: "Buttons and inputs include ARIA labels by default.", tag: "UX" },
-                  { title: "Transcript export", detail: "Copy chat logs for audits or handoffs.", tag: "Admin" },
-                  { title: "Minimize + reset", detail: "Compact the dock or clear the session in one tap.", tag: "UX" },
-                  { title: "Scroll helpers", detail: "Auto-scroll with manual controls for long sessions.", tag: "UX" },
-                  { title: "Status endpoint", detail: "Admin visibility into indexed pages and chunks.", tag: "Admin" },
-                  { title: "Safe fallback", detail: "Runs with local heuristics when no LLM is configured.", tag: "Reliability" },
-                  { title: "API schema docs", detail: "HostApi schema provides clear contracts for tools.", tag: "DX" },
-                  { title: "Vercel-ready", detail: "Serverless ingest, chat, config, and status endpoints.", tag: "Deploy" },
-                  { title: "Framework-ready", detail: "Embeddable script plus React package for deeper integration.", tag: "DX" },
-                  { title: "Open source", detail: "MIT licensed runtime, widget, and CLI packages.", tag: "Open" },
-                ].map((feature, index) => (
-                  <div
-                    key={feature.title}
-                    className={`flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-start sm:justify-between ${
-                      index === 0 ? "" : "border-t border-white/[0.06]"
-                    }`}
-                  >
-                    <div>
-                      <p className="text-[14px] font-medium text-white">{feature.title}</p>
-                      <p className="mt-1 text-[13px] text-white/45">{feature.detail}</p>
+                  {
+                    title: "Embed + config",
+                    items: [
+                      "One-line embed with site key",
+                      "Hosted dashboard for settings",
+                      "CLI bootstrap and sync",
+                      "Data-attribute overrides",
+                    ],
+                  },
+                  {
+                    title: "Ingest + context",
+                    items: [
+                      "Auto crawl via sitemap",
+                      "Same-origin page discovery",
+                      "Client-side page snapshot",
+                      "Multi-site tenancy",
+                    ],
+                  },
+                  {
+                    title: "Agent runtime",
+                    items: [
+                      "Typed tool calls only",
+                      "Built-in agent plugins",
+                      "Custom agent definitions",
+                      "Per-agent session history",
+                    ],
+                  },
+                  {
+                    title: "User experience",
+                    items: [
+                      "Dock placement controls",
+                      "Draggable launcher",
+                      "Session persistence",
+                      "Transcript export",
+                    ],
+                  },
+                  {
+                    title: "Admin + ops",
+                    items: [
+                      "Status endpoint",
+                      "Minimize and reset",
+                      "Scroll helpers",
+                      "Accessible UI defaults",
+                    ],
+                  },
+                  {
+                    title: "Deployment",
+                    items: [
+                      "Groq streaming responses",
+                      "Safe heuristic fallback",
+                      "Vercel-ready endpoints",
+                      "MIT open source",
+                    ],
+                  },
+                ].map((group) => (
+                  <div key={group.title} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
+                    <p className="text-[13px] font-semibold text-white">{group.title}</p>
+                    <div className="mt-3 space-y-2 text-[13px] text-white/45">
+                      {group.items.map((item) => (
+                        <div key={item} className="flex items-center gap-2">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#0ea5e9]" />
+                          <span>{item}</span>
+                        </div>
+                      ))}
                     </div>
-                    <span className="text-[11px] uppercase tracking-widest text-white/30">{feature.tag}</span>
                   </div>
                 ))}
               </div>
