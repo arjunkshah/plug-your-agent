@@ -148,20 +148,69 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const { url, depth, maxPages, siteKey, force } = req.body ?? {};
-  if (!url || typeof url !== "string") {
+  const { url, depth, maxPages, siteKey, force, pageText, pageTitle, pageUrl } = req.body ?? {};
+  const baseUrl =
+    typeof url === "string" && url.trim()
+      ? url
+      : typeof pageUrl === "string" && pageUrl.trim()
+        ? pageUrl
+        : "";
+  const hasSnapshot = typeof pageText === "string" && pageText.trim().length > 0;
+  if (!baseUrl && !hasSnapshot) {
     res.status(400).json({ error: "Missing url" });
     return;
   }
 
   try {
-    const normalizedUrl = normalizeUrl(url);
+    const normalizedUrl = baseUrl ? normalizeUrl(baseUrl) : "";
     const depthLimit = Number.isFinite(depth) ? Math.max(0, Number(depth)) : 1;
     const maxLimit = Number.isFinite(maxPages) ? Math.max(1, Number(maxPages)) : 15;
     const cacheKey =
-      siteKey && typeof siteKey === "string" ? siteKey : new URL(normalizedUrl).hostname;
+      siteKey && typeof siteKey === "string"
+        ? siteKey
+        : normalizedUrl
+          ? new URL(normalizedUrl).hostname
+          : "";
 
-    if (!force && store.has(cacheKey)) {
+    if (!cacheKey) {
+      res.status(400).json({ error: "Missing site key" });
+      return;
+    }
+
+    const existing = !force ? store.get(cacheKey) : undefined;
+    const pages: DocPage[] = existing?.pages ? [...existing.pages] : [];
+    const chunks: string[] = existing?.chunks ? [...existing.chunks] : [];
+
+    if (hasSnapshot) {
+      const cleaned = String(pageText).replace(/\s+/g, " ").trim();
+      if (cleaned) {
+        const snapshotUrl = pageUrl
+          ? normalizeUrl(pageUrl)
+          : normalizedUrl || `${cacheKey}`;
+        if (!pages.some((page) => page.url === snapshotUrl)) {
+          pages.unshift({
+            url: snapshotUrl,
+            title: typeof pageTitle === "string" ? pageTitle : "",
+            wordCount: cleaned.split(/\s+/).length,
+          });
+        }
+        const snapshotChunks = chunkText(cleaned, 140).slice(0, 20);
+        chunks.unshift(...snapshotChunks);
+      }
+    }
+
+    if (!normalizedUrl) {
+      store.set(cacheKey, {
+        url: pageUrl ? normalizeUrl(pageUrl) : cacheKey,
+        chunks: chunks.slice(0, 220),
+        pages,
+        updatedAt: Date.now(),
+      });
+      res.status(200).json({ ok: true, pages: pages.length, chunks: chunks.length });
+      return;
+    }
+
+    if (!force && store.has(cacheKey) && !hasSnapshot) {
       const cached = store.get(cacheKey);
       res.status(200).json({ ok: true, cached: true, pages: cached?.pages?.length ?? 0 });
       return;
@@ -205,7 +254,6 @@ export default async function handler(req: any, res: any) {
     }
 
     const texts: string[] = [];
-    const pages: DocPage[] = [];
     const origin = new URL(normalizedUrl).origin;
 
     while (queue.length && urls.length < maxLimit) {
@@ -269,16 +317,17 @@ export default async function handler(req: any, res: any) {
     }
 
     const combinedText = texts.join(" ");
-    const chunks = chunkText(combinedText).slice(0, 200);
+    const crawledChunks = chunkText(combinedText).slice(0, 200);
+    const mergedChunks = [...chunks, ...crawledChunks].slice(0, 280);
 
     store.set(cacheKey, {
       url: normalizedUrl,
-      chunks,
+      chunks: mergedChunks,
       pages,
       updatedAt: Date.now(),
     });
 
-    res.status(200).json({ ok: true, chunks: chunks.length, pages: pages.length });
+    res.status(200).json({ ok: true, chunks: mergedChunks.length, pages: pages.length });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     res.status(500).json({ error: message });

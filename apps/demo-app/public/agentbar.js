@@ -395,6 +395,7 @@
     loading: false,
     greeted: false,
     minimized: minimizedOnLoad,
+    snapshotSent: false,
   };
 
   if (launcherTooltip) {
@@ -587,12 +588,41 @@
     scrollButton.classList.toggle("show", !atBottom);
   };
 
+  const sendSnapshot = async () => {
+    if (state.snapshotSent) {
+      return;
+    }
+    const text = document.body?.innerText || "";
+    const cleaned = text.replace(/\s+/g, " ").trim();
+    if (!cleaned) {
+      state.snapshotSent = true;
+      return;
+    }
+    state.snapshotSent = true;
+    try {
+      await fetch(`${apiBase}/api/ingest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: siteUrl,
+          pageUrl: window.location.href,
+          pageTitle: document.title,
+          pageText: cleaned.slice(0, 12000),
+          siteKey: siteKey || undefined,
+        }),
+      });
+    } catch (_error) {
+      state.snapshotSent = false;
+    }
+  };
+
   const ingest = async () => {
     if (state.ingested) {
       return;
     }
     try {
       setStatus("Indexing site content...");
+      await sendSnapshot();
       const response = await fetch(`${apiBase}/api/ingest`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
