@@ -120,11 +120,46 @@ const hostApiSnippet = `export interface HostApi {
   suggestCopy(area: string): Promise<string>;
 }`;
 
-const embedSnippet = `<script\n  src=\"https://your-deploy-url/agentbar.js\"\n  data-site=\"https://your-site.com\"\n  data-api=\"https://your-deploy-url\"\n  data-depth=\"2\"\n  data-max-pages=\"25\"\n  data-site-key=\"your-site-key\"\n  data-theme-color=\"#0ea5e9\"\n  data-font-family=\"Satoshi, ui-sans-serif\"\n  data-position=\"right\"\n  data-offset-y=\"24\"\n  data-input-placeholder=\"Ask about this page\"\n  data-suggestions=\"Search pricing | Summarize docs | Draft marketing copy\"\n  data-greeting=\"Welcome back. How can I help?\"\n  data-badge-label=\"AI\"\n  data-user-bubble-background=\"rgba(14,165,233,0.12)\"\n  data-panel-shadow=\"0 36px 80px -55px rgba(15, 23, 42, 0.45)\"\n  data-show-export=\"true\"\n  data-export-label=\"Copy\"\n  data-show-scroll-button=\"true\"\n  data-scroll-label=\"Scroll\"\n  data-show-minimize=\"true\"\n  data-show-timestamps=\"true\"\n  data-launcher-tooltip=\"Open assistant\"\n  data-draggable=\"true\"\n  data-persist-position=\"true\"\n  data-persist=\"true\"\n  data-open=\"false\"\n></script>`;
+const embedSnippet = `<script src="https://agent-pug.vercel.app/agentbar.js" data-site-key="your-site-key"></script>`;
 
 const cliSnippet = `npm install -g agentbar-cli\nagentbar init\nagentbar snippet`;
 
+const normalizeUrl = (value: string) => {
+  try {
+    if (!value) {
+      return "";
+    }
+    if (value.startsWith("http://") || value.startsWith("https://")) {
+      return new URL(value).toString();
+    }
+    return new URL(`https://${value}`).toString();
+  } catch (_error) {
+    return "";
+  }
+};
+
+const resolveSiteKey = (value: string) => {
+  const normalized = normalizeUrl(value);
+  if (!normalized) {
+    return "";
+  }
+  try {
+    return new URL(normalized).hostname;
+  } catch {
+    return "";
+  }
+};
+
 export default function App() {
+  const [configForm, setConfigForm] = useState({
+    siteUrl: window.location.origin,
+    themeColor: "#059669",
+    position: "right",
+    greeting: "Welcome back. How can I help?",
+    suggestions: "Search pricing | Explain a feature | Draft homepage copy",
+  });
+  const [configSaving, setConfigSaving] = useState(false);
+  const [configStatus, setConfigStatus] = useState("");
   const [statusItems, setStatusItems] = useState<
     Array<{ key: string; url: string; pages: Array<{ url: string; title: string }> }>
   >([]);
@@ -172,6 +207,64 @@ export default function App() {
       const message = error instanceof Error ? error.message : "Unknown error";
       setStatusError(message);
       setStatusLoading(false);
+    }
+  };
+
+  const hostedSiteUrl = normalizeUrl(configForm.siteUrl) || window.location.origin;
+  const hostedSiteKey = resolveSiteKey(hostedSiteUrl);
+  const hostedSnippet = `<script src="${apiBaseDisplay}/agentbar.js" data-site-key="${
+    hostedSiteKey || "your-site-key"
+  }"></script>`;
+
+  const saveHostedConfig = async () => {
+    setConfigSaving(true);
+    setConfigStatus("");
+    const siteKey = hostedSiteKey;
+    if (!siteKey) {
+      setConfigStatus("Enter a valid site URL.");
+      setConfigSaving(false);
+      return;
+    }
+    const suggestions = configForm.suggestions
+      .split("|")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    try {
+      const response = await fetch(`${apiBaseDisplay}/api/config`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          siteKey,
+          config: {
+            siteUrl: hostedSiteUrl,
+            themeColor: configForm.themeColor,
+            position: configForm.position,
+            greeting: configForm.greeting,
+            suggestions,
+            apiBase: apiBaseDisplay,
+          },
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to save settings.");
+      }
+      setConfigStatus("Settings saved.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to save settings.";
+      setConfigStatus(message);
+    } finally {
+      setConfigSaving(false);
+    }
+  };
+
+  const copyHostedSnippet = async () => {
+    try {
+      await navigator.clipboard.writeText(hostedSnippet);
+      setConfigStatus("Snippet copied.");
+    } catch (_error) {
+      setConfigStatus("Copy failed. Select the snippet manually.");
     }
   };
 
@@ -353,23 +446,15 @@ export default function App() {
             <div id="embed" className="space-y-4">
               <h3 className="text-2xl font-semibold text-slate-900">One-line embed</h3>
               <p className="text-sm text-slate-600">
-                Drop this script tag into any site. It auto-scrapes the page and calls the Groq
-                powered chat endpoint you deploy with this repo.
+                Drop this script tag into any site. The hosted dashboard stores your widget settings,
+                so your embed stays one short line.
               </p>
               <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
                 <pre className="whitespace-pre-wrap">{embedSnippet}</pre>
               </div>
-              <div className="grid gap-2 text-xs text-slate-500">
-                <span>data-depth: crawl depth (default 1).</span>
-                <span>data-max-pages: maximum pages to index (default 15).</span>
-                <span>data-site-key: host multiple sites on one backend.</span>
-                <span>data-theme-color: brand color.</span>
-                <span>data-position: left, right, or bottom.</span>
-              </div>
               <p className="text-xs text-slate-500">
-                Deploy this repo to Vercel, set GROQ_API_KEY, and the widget will use /api/chat and
-                /api/ingest automatically. data-site-key lets you host multiple sites on one
-                backend.
+                Deploy this repo to Vercel, set GROQ_API_KEY, and the widget will auto-ingest the site
+                content for answers. data-site-key lets you host multiple sites on one backend.
               </p>
             </div>
 
@@ -448,7 +533,113 @@ const llmProvider = createProxyProvider({
             </div>
 
             <div id="admin" className="space-y-4">
-              <h3 className="text-2xl font-semibold text-slate-900">Indexing console</h3>
+              <h3 className="text-2xl font-semibold text-slate-900">Admin</h3>
+              <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">Hosted settings</p>
+                    <p className="text-xs text-slate-500">
+                      Edit the settings stored on the hosted dashboard. Your embed stays a single
+                      line.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <label className="space-y-2 text-xs text-slate-600">
+                    <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">
+                      Site URL
+                    </span>
+                    <input
+                      value={configForm.siteUrl}
+                      onChange={(event) =>
+                        setConfigForm((prev) => ({ ...prev, siteUrl: event.target.value }))
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                      placeholder="https://your-site.com"
+                    />
+                  </label>
+                  <label className="space-y-2 text-xs text-slate-600">
+                    <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">
+                      Theme color
+                    </span>
+                    <input
+                      value={configForm.themeColor}
+                      onChange={(event) =>
+                        setConfigForm((prev) => ({ ...prev, themeColor: event.target.value }))
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                      placeholder="#059669"
+                    />
+                  </label>
+                  <label className="space-y-2 text-xs text-slate-600">
+                    <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">
+                      Position
+                    </span>
+                    <select
+                      value={configForm.position}
+                      onChange={(event) =>
+                        setConfigForm((prev) => ({ ...prev, position: event.target.value }))
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                    >
+                      <option value="right">Right</option>
+                      <option value="left">Left</option>
+                      <option value="bottom">Bottom</option>
+                    </select>
+                  </label>
+                  <label className="space-y-2 text-xs text-slate-600">
+                    <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">
+                      Greeting
+                    </span>
+                    <input
+                      value={configForm.greeting}
+                      onChange={(event) =>
+                        setConfigForm((prev) => ({ ...prev, greeting: event.target.value }))
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                      placeholder="Welcome back. How can I help?"
+                    />
+                  </label>
+                </div>
+                <label className="mt-4 block space-y-2 text-xs text-slate-600">
+                  <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">
+                    Suggestions (use | to separate)
+                  </span>
+                  <input
+                    value={configForm.suggestions}
+                    onChange={(event) =>
+                      setConfigForm((prev) => ({ ...prev, suggestions: event.target.value }))
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                    placeholder="Search pricing | Explain a feature"
+                  />
+                </label>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={saveHostedConfig}
+                    className="rounded-full border border-emerald-600/30 bg-emerald-600/10 px-4 py-2 text-xs text-emerald-700 transition hover:bg-emerald-600/20"
+                  >
+                    {configSaving ? "Saving..." : "Save settings"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={copyHostedSnippet}
+                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700 transition hover:bg-slate-100"
+                  >
+                    Copy snippet
+                  </button>
+                  {configStatus ? (
+                    <span className="text-xs text-slate-500">{configStatus}</span>
+                  ) : null}
+                </div>
+                <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                  <pre className="whitespace-pre-wrap">{hostedSnippet}</pre>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-xl font-semibold text-slate-900">Indexing console</h4>
               <p className="text-sm text-slate-600">
                 View indexed sites and trigger a re-index. This uses the in-memory store, so data
                 resets on cold starts unless you add persistence.
@@ -492,6 +683,7 @@ const llmProvider = createProxyProvider({
                     </div>
                   ))
                 )}
+              </div>
               </div>
             </div>
 

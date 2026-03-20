@@ -90,6 +90,26 @@ const saveConfig = (config) => {
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 };
 
+const syncConfig = async (config) => {
+  const apiBase = (config.apiBase || DEFAULT_CONFIG.apiBase).replace(/\/$/, "");
+  const siteKey = resolveSiteKey(config);
+  if (!siteKey) {
+    return;
+  }
+  try {
+    await fetch(`${apiBase}/api/config`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        siteKey,
+        config: { ...config, siteKey },
+      }),
+    });
+  } catch (_error) {
+    console.warn("Could not sync settings to the hosted dashboard.");
+  }
+};
+
 const normalizeUrl = (value) => {
   if (!value || typeof value !== "string") {
     return "";
@@ -120,196 +140,9 @@ const resolveSiteKey = (config) => {
 };
 
 const renderSnippet = (config) => {
-  const lines = [
-    "<script",
-    `  src=\"${config.apiBase.replace(/\/$/, "")}/agentbar.js\"`,
-    `  data-site=\"${config.siteUrl || "https://your-site.com"}\"`,
-    `  data-api=\"${config.apiBase.replace(/\/$/, "")}\"`,
-    `  data-depth=\"${config.depth}\"`,
-    `  data-max-pages=\"${config.maxPages}\"`,
-  ];
-  if (config.siteKey) {
-    lines.push(`  data-site-key=\"${config.siteKey}\"`);
-  }
-  if (config.themeColor) {
-    lines.push(`  data-theme-color=\"${config.themeColor}\"`);
-  }
-  if (config.position) {
-    lines.push(`  data-position=\"${config.position}\"`);
-  }
-  if (config.title) {
-    lines.push(`  data-title=\"${config.title}\"`);
-  }
-  if (config.subtitle) {
-    lines.push(`  data-subtitle=\"${config.subtitle}\"`);
-  }
-  if (config.buttonLabel) {
-    lines.push(`  data-button-label=\"${config.buttonLabel}\"`);
-  }
-  if (config.fontFamily) {
-    lines.push(`  data-font-family=\"${config.fontFamily}\"`);
-  }
-  if (config.panelBackground) {
-    lines.push(`  data-panel-background=\"${config.panelBackground}\"`);
-  }
-  if (config.textColor) {
-    lines.push(`  data-text-color=\"${config.textColor}\"`);
-  }
-  if (config.mutedTextColor) {
-    lines.push(`  data-muted-text-color=\"${config.mutedTextColor}\"`);
-  }
-  if (config.borderColor) {
-    lines.push(`  data-border-color=\"${config.borderColor}\"`);
-  }
-  if (config.buttonBackground) {
-    lines.push(`  data-button-background=\"${config.buttonBackground}\"`);
-  }
-  if (config.buttonTextColor) {
-    lines.push(`  data-button-text-color=\"${config.buttonTextColor}\"`);
-  }
-  if (config.accentTextColor) {
-    lines.push(`  data-accent-text-color=\"${config.accentTextColor}\"`);
-  }
-  if (config.buttonShadow) {
-    lines.push(`  data-button-shadow=\"${config.buttonShadow}\"`);
-  }
-  if (config.panelShadow) {
-    lines.push(`  data-panel-shadow=\"${config.panelShadow}\"`);
-  }
-  if (config.badgeLabel) {
-    lines.push(`  data-badge-label=\"${config.badgeLabel}\"`);
-  }
-  if (config.badgeBackground) {
-    lines.push(`  data-badge-background=\"${config.badgeBackground}\"`);
-  }
-  if (config.badgeTextColor) {
-    lines.push(`  data-badge-text-color=\"${config.badgeTextColor}\"`);
-  }
-  if (config.userBubbleBackground) {
-    lines.push(`  data-user-bubble-background=\"${config.userBubbleBackground}\"`);
-  }
-  if (config.userBubbleText) {
-    lines.push(`  data-user-bubble-text=\"${config.userBubbleText}\"`);
-  }
-  if (config.userBubbleBorder) {
-    lines.push(`  data-user-bubble-border=\"${config.userBubbleBorder}\"`);
-  }
-  if (config.assistantBubbleBackground) {
-    lines.push(`  data-assistant-bubble-background=\"${config.assistantBubbleBackground}\"`);
-  }
-  if (config.assistantBubbleText) {
-    lines.push(`  data-assistant-bubble-text=\"${config.assistantBubbleText}\"`);
-  }
-  if (config.assistantBubbleBorder) {
-    lines.push(`  data-assistant-bubble-border=\"${config.assistantBubbleBorder}\"`);
-  }
-  if (config.panelWidth) {
-    lines.push(`  data-panel-width=\"${config.panelWidth}\"`);
-  }
-  if (config.panelMaxHeight) {
-    lines.push(`  data-panel-max-height=\"${config.panelMaxHeight}\"`);
-  }
-  if (config.panelRadius) {
-    lines.push(`  data-panel-radius=\"${config.panelRadius}\"`);
-  }
-  if (config.buttonRadius) {
-    lines.push(`  data-button-radius=\"${config.buttonRadius}\"`);
-  }
-  if (typeof config.offsetX === "number") {
-    lines.push(`  data-offset-x=\"${config.offsetX}\"`);
-  }
-  if (typeof config.offsetY === "number") {
-    lines.push(`  data-offset-y=\"${config.offsetY}\"`);
-  }
-  if (config.inputPlaceholder) {
-    lines.push(`  data-input-placeholder=\"${config.inputPlaceholder}\"`);
-  }
-  if (config.sendLabel) {
-    lines.push(`  data-send-label=\"${config.sendLabel}\"`);
-  }
-  if (config.suggestions?.length) {
-    lines.push(`  data-suggestions=\"${config.suggestions.join(" | ")}\"`);
-  }
-  if (config.greeting) {
-    lines.push(`  data-greeting=\"${config.greeting}\"`);
-  }
-  if (typeof config.draggable === "boolean") {
-    lines.push(`  data-draggable=\"${config.draggable}\"`);
-  }
-  if (typeof config.dragOffset === "number" && config.dragOffset !== 0) {
-    lines.push(`  data-drag-offset=\"${config.dragOffset}\"`);
-  }
-  if (typeof config.persistPosition === "boolean") {
-    lines.push(`  data-persist-position=\"${config.persistPosition}\"`);
-  }
-  if (config.positionKey) {
-    lines.push(`  data-position-key=\"${config.positionKey}\"`);
-  }
-  if (config.openOnLoad) {
-    lines.push(`  data-open=\"${config.openOnLoad}\"`);
-  }
-  if (config.showReset) {
-    lines.push(`  data-show-reset=\"${config.showReset}\"`);
-  }
-  if (config.persist) {
-    lines.push(`  data-persist=\"${config.persist}\"`);
-  }
-  if (config.storageKey) {
-    lines.push(`  data-storage-key=\"${config.storageKey}\"`);
-  }
-  if (typeof config.showTypingIndicator === "boolean") {
-    lines.push(`  data-show-typing-indicator=\"${config.showTypingIndicator}\"`);
-  }
-  if (typeof config.showExport === "boolean") {
-    lines.push(`  data-show-export=\"${config.showExport}\"`);
-  }
-  if (config.exportLabel) {
-    lines.push(`  data-export-label=\"${config.exportLabel}\"`);
-  }
-  if (typeof config.showScrollButton === "boolean") {
-    lines.push(`  data-show-scroll-button=\"${config.showScrollButton}\"`);
-  }
-  if (config.scrollLabel) {
-    lines.push(`  data-scroll-label=\"${config.scrollLabel}\"`);
-  }
-  if (typeof config.showMinimize === "boolean") {
-    lines.push(`  data-show-minimize=\"${config.showMinimize}\"`);
-  }
-  if (typeof config.minimizedOnLoad === "boolean") {
-    lines.push(`  data-minimized-on-load=\"${config.minimizedOnLoad}\"`);
-  }
-  if (config.minimizeLabel) {
-    lines.push(`  data-minimize-label=\"${config.minimizeLabel}\"`);
-  }
-  if (config.expandLabel) {
-    lines.push(`  data-expand-label=\"${config.expandLabel}\"`);
-  }
-  if (typeof config.showTimestamps === "boolean") {
-    lines.push(`  data-show-timestamps=\"${config.showTimestamps}\"`);
-  }
-  if (config.timestampLocale) {
-    lines.push(`  data-timestamp-locale=\"${config.timestampLocale}\"`);
-  }
-  if (typeof config.autoScroll === "boolean") {
-    lines.push(`  data-auto-scroll=\"${config.autoScroll}\"`);
-  }
-  if (typeof config.autoScrollThreshold === "number") {
-    lines.push(`  data-auto-scroll-threshold=\"${config.autoScrollThreshold}\"`);
-  }
-  if (config.messageMaxWidth) {
-    lines.push(`  data-message-max-width=\"${config.messageMaxWidth}\"`);
-  }
-  if (config.launcherTooltip) {
-    lines.push(`  data-launcher-tooltip=\"${config.launcherTooltip}\"`);
-  }
-  if (typeof config.autoIngest === "boolean") {
-    lines.push(`  data-auto-ingest=\"${config.autoIngest}\"`);
-  }
-  if (typeof config.closeOnOutsideClick === "boolean") {
-    lines.push(`  data-close-on-outside-click=\"${config.closeOnOutsideClick}\"`);
-  }
-  lines.push("></script>");
-  return lines.join("\n");
+  const apiBase = (config.apiBase || DEFAULT_CONFIG.apiBase).replace(/\/$/, "");
+  const siteKey = resolveSiteKey(config) || "your-site-key";
+  return `<script src="${apiBase}/agentbar.js" data-site-key="${siteKey}"></script>`;
 };
 
 const printHelp = () => {
@@ -384,9 +217,11 @@ const init = async () => {
   }
 
   saveConfig(config);
+  await syncConfig(config);
   console.log("\nSaved config to", configPath);
   console.log("\nEmbed snippet:\n");
   console.log(renderSnippet(config));
+  console.log(`\nDashboard: ${(config.apiBase || DEFAULT_CONFIG.apiBase).replace(/\/$/, "")}\n`);
 };
 
 const printStats = async () => {
@@ -427,7 +262,7 @@ const printStats = async () => {
   }
 };
 
-const setValue = (key, value) => {
+const setValue = async (key, value) => {
   if (!key || typeof value === "undefined") {
     console.error("Usage: agentbar set <key> <value>");
     process.exit(1);
@@ -484,11 +319,15 @@ const setValue = (key, value) => {
       .split(/[|,]/)
       .map((item) => item.trim())
       .filter(Boolean);
+  } else if (key === "siteUrl") {
+    config[key] = normalizeUrl(value);
+    config.siteKey = resolveSiteKey(config);
   } else {
     config[key] = value;
   }
 
   saveConfig(config);
+  await syncConfig(config);
   console.log("Updated", key, "in", configPath);
 };
 
@@ -508,7 +347,7 @@ const main = async () => {
       await printStats();
       return;
     case "set":
-      setValue(arg1, arg2);
+      await setValue(arg1, arg2);
       return;
     case "config":
       console.log(JSON.stringify(loadConfig(), null, 2));

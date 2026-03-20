@@ -1,6 +1,6 @@
-(() => {
+;(async () => {
   const script = document.currentScript;
-  const config = window.AgentBarConfig || {};
+  let config = window.AgentBarConfig || {};
 
   const toBoolean = (value, fallback = false) => {
     if (typeof value === "boolean") return value;
@@ -58,7 +58,32 @@
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
 
-  const apiBase = (config.apiBase || script?.dataset.api || window.location.origin).replace(/\/$/, "");
+  const scriptOrigin = (() => {
+    try {
+      return script?.src ? new URL(script.src).origin : window.location.origin;
+    } catch (_error) {
+      return window.location.origin;
+    }
+  })();
+  const seedApiBase = (config.apiBase || script?.dataset.api || scriptOrigin).replace(/\/$/, "");
+  const seedSiteKey = config.siteKey || script?.dataset.siteKey || "";
+  if (seedSiteKey) {
+    try {
+      const response = await fetch(
+        `${seedApiBase}/api/config?siteKey=${encodeURIComponent(seedSiteKey)}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        const remoteConfig =
+          data?.config && typeof data.config === "object" ? data.config : data;
+        config = { ...remoteConfig, ...config };
+      }
+    } catch (_error) {
+      // Ignore remote config failures.
+    }
+  }
+
+  const apiBase = (config.apiBase || script?.dataset.api || seedApiBase).replace(/\/$/, "");
   const rawSiteUrl = config.siteUrl || script?.dataset.site || window.location.origin;
   const normalizeSiteUrl = (value) => {
     if (typeof value !== "string") {
@@ -70,7 +95,7 @@
     return `https://${value}`;
   };
   const siteUrl = normalizeSiteUrl(rawSiteUrl);
-  const siteKey = config.siteKey || script?.dataset.siteKey || "";
+  const siteKey = config.siteKey || script?.dataset.siteKey || seedSiteKey || "";
   const position = config.position || script?.dataset.position || "right";
   const title = config.title || script?.dataset.title || "Site Assistant";
   const subtitle = config.subtitle || script?.dataset.subtitle || "Get answers from your site.";

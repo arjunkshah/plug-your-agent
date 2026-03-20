@@ -1,6 +1,6 @@
 {
   "name": "agentbar-cli",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "type": "module",
   "description": "Global wrapper for the Agent Plugin Bar CLI.",
   "bin": {
@@ -21,7 +21,7 @@
     "chatbot"
   ],
   "dependencies": {
-    "@arjun-shah/agentbar-cli": "^0.1.9"
+    "@arjun-shah/agentbar-cli": "^0.1.10"
   },
   "publishConfig": {
     "access": "public"

@@ -20,12 +20,16 @@ agentbar init
 ```
 
 `agentbar init` only asks for your site URL. It writes `agentbar.config.json` in your
-project so you can always update values:
+project, syncs settings to the hosted dashboard, and gives you a one-line snippet:
 
 ```bash
 agentbar set siteUrl https://your-site.com
 agentbar snippet
 agentbar stats
+```
+
+```html
+<script src="https://agent-pug.vercel.app/agentbar.js" data-site-key="your-site-key"></script>
 ```
 
 ```tsx
@@ -100,18 +104,14 @@ const llmProvider = createProxyProvider({
 Deploy this repo to Vercel, set `GROQ_API_KEY`, and embed the widget with one script tag:
 
 ```html
-<script
-  src="https://your-deploy-url/agentbar.js"
-  data-site="https://your-site.com"
-  data-api="https://your-deploy-url"
-  data-depth="2"
-  data-max-pages="25"
-  data-site-key="your-site-key"
-></script>
+<script src="https://your-deploy-url/agentbar.js" data-site-key="your-site-key"></script>
 ```
 
-The embed script calls `/api/ingest` to crawl your site (uses `sitemap.xml` if present) and
-`/api/chat` to run Groq inference. Responses stream in real time.
+The embed script pulls settings from the hosted dashboard (`/api/config`), then calls
+`/api/ingest` to crawl your site (uses `sitemap.xml` if present) and `/api/chat` to run Groq
+inference. Responses stream in real time.
+
+Open your deployed site to edit hosted settings (the Admin section includes a dashboard form).
 
 You can generate the snippet with the CLI:
 
@@ -120,7 +120,7 @@ agentbar init
 agentbar snippet
 ```
 
-### Embed options
+### Embed options (overrides)
 
 - `data-site` - base URL to crawl.
 - `data-api` - deployment URL hosting the API routes.

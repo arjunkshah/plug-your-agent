@@ -24,7 +24,13 @@ agentbar stats
 ```
 
 The CLI writes `agentbar.config.json` in your project directory. `agentbar init` only asks
-for your site URL.
+for your site URL and syncs settings to the hosted dashboard so your embed is a single line:
+
+```html
+<script src="https://agent-pug.vercel.app/agentbar.js" data-site-key="your-site-key"></script>
+```
+
+Open the deployed dashboard to edit settings and copy the snippet again.
 
 ## Customization
 
