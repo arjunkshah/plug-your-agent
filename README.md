@@ -19,11 +19,13 @@ npm install -g agentbar-cli
 agentbar init
 ```
 
-This writes `agentbar.config.json` in your project so you can always update values:
+`agentbar init` only asks for your site URL. It writes `agentbar.config.json` in your
+project so you can always update values:
 
 ```bash
 agentbar set siteUrl https://your-site.com
 agentbar snippet
+agentbar stats
 ```
 
 ```tsx

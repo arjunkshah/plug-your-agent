@@ -20,9 +20,11 @@ npm install -g @arjun-shah/agentbar-cli
 agentbar init
 agentbar snippet
 agentbar set siteUrl https://your-site.com
+agentbar stats
 ```
 
-The CLI writes `agentbar.config.json` in your project directory.
+The CLI writes `agentbar.config.json` in your project directory. `agentbar init` only asks
+for your site URL.
 
 ## Customization
 

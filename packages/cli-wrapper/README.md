@@ -14,6 +14,8 @@ npm install -g agentbar-cli
 agentbar init
 agentbar snippet
 agentbar set siteUrl https://your-site.com
+agentbar stats
 ```
 
-This package forwards to `@arjun-shah/agentbar-cli`.
+`agentbar init` only asks for your site URL. This package forwards to
+`@arjun-shah/agentbar-cli`.

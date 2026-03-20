@@ -90,6 +90,35 @@ const saveConfig = (config) => {
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 };
 
+const normalizeUrl = (value) => {
+  if (!value || typeof value !== "string") {
+    return "";
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+};
+
+const resolveSiteKey = (config) => {
+  if (config.siteKey) {
+    return config.siteKey;
+  }
+  const normalized = normalizeUrl(config.siteUrl);
+  if (!normalized) {
+    return "";
+  }
+  try {
+    return new URL(normalized).hostname;
+  } catch {
+    return "";
+  }
+};
+
 const renderSnippet = (config) => {
   const lines = [
     "<script",
@@ -289,6 +318,7 @@ const printHelp = () => {
   console.log("  agentbar init           Interactive setup and snippet output");
   console.log("  agentbar snippet        Print current embed snippet");
   console.log("  agentbar set <key> <v>  Update config value");
+  console.log("  agentbar stats          Fetch indexing status from the API");
   console.log("  agentbar config         Print config JSON");
   console.log("  agentbar help           Show help\n");
   console.log("Config keys:");
@@ -343,59 +373,12 @@ const init = async () => {
   });
 
   try {
-    config.siteUrl = await ask(rl, "Site URL", config.siteUrl || "https://your-site.com");
-    config.apiBase = await ask(rl, "API base URL", config.apiBase);
-    config.depth = Number(await ask(rl, "Crawl depth", String(config.depth)) || config.depth);
-    config.maxPages = Number(
-      await ask(rl, "Max pages", String(config.maxPages)) || config.maxPages
-    );
-    config.siteKey = await ask(rl, "Site key (optional)", config.siteKey);
-    config.themeColor = await ask(rl, "Theme color", config.themeColor);
-    config.position = await ask(rl, "Position (left/right/bottom)", config.position);
-    config.title = await ask(rl, "Widget title", config.title);
-    config.subtitle = await ask(rl, "Widget subtitle", config.subtitle);
-    config.buttonLabel = await ask(rl, "Button label", config.buttonLabel);
-    config.fontFamily = await ask(rl, "Font family", config.fontFamily);
-    config.inputPlaceholder = await ask(rl, "Input placeholder", config.inputPlaceholder);
-    config.sendLabel = await ask(rl, "Send button label", config.sendLabel);
-    const suggestionInput = await ask(
-      rl,
-      "Suggestions (pipe or comma separated)",
-      config.suggestions.join(" | ")
-    );
-    config.suggestions = suggestionInput
-      .split(/[|,]/)
-      .map((value) => value.trim())
-      .filter(Boolean);
-    config.greeting = await ask(rl, "Greeting (optional)", config.greeting);
-    config.draggable =
-      (await ask(rl, "Draggable launcher (true/false)", String(config.draggable))) === "true";
-    config.persistPosition =
-      (await ask(rl, "Persist position (true/false)", String(config.persistPosition))) === "true";
-    config.openOnLoad = (await ask(rl, "Open on load (true/false)", String(config.openOnLoad))) === "true";
-    config.showReset = (await ask(rl, "Show reset button (true/false)", String(config.showReset))) === "true";
-    config.persist = (await ask(rl, "Persist chat (true/false)", String(config.persist))) === "true";
-    config.showTypingIndicator =
-      (await ask(rl, "Show typing indicator (true/false)", String(config.showTypingIndicator))) ===
-      "true";
-    config.showExport =
-      (await ask(rl, "Show export button (true/false)", String(config.showExport))) === "true";
-    config.exportLabel = await ask(rl, "Export label", config.exportLabel);
-    config.showScrollButton =
-      (await ask(rl, "Show scroll button (true/false)", String(config.showScrollButton))) ===
-      "true";
-    config.scrollLabel = await ask(rl, "Scroll button label", config.scrollLabel);
-    config.showMinimize =
-      (await ask(rl, "Show minimize button (true/false)", String(config.showMinimize))) ===
-      "true";
-    config.minimizedOnLoad =
-      (await ask(rl, "Minimized on load (true/false)", String(config.minimizedOnLoad))) ===
-      "true";
-    config.showTimestamps =
-      (await ask(rl, "Show timestamps (true/false)", String(config.showTimestamps))) === "true";
-    config.autoScroll =
-      (await ask(rl, "Auto scroll (true/false)", String(config.autoScroll))) === "true";
-    config.autoIngest = (await ask(rl, "Auto ingest (true/false)", String(config.autoIngest))) === "true";
+    const siteUrlInput = await ask(rl, "Site URL", config.siteUrl || "https://your-site.com");
+    config.siteUrl = normalizeUrl(siteUrlInput);
+    if (!config.siteUrl) {
+      config.siteUrl = "https://your-site.com";
+    }
+    config.siteKey = resolveSiteKey(config);
   } finally {
     rl.close();
   }
@@ -404,6 +387,44 @@ const init = async () => {
   console.log("\nSaved config to", configPath);
   console.log("\nEmbed snippet:\n");
   console.log(renderSnippet(config));
+};
+
+const printStats = async () => {
+  const config = loadConfig();
+  const apiBase = (config.apiBase || DEFAULT_CONFIG.apiBase).replace(/\/$/, "");
+  const siteKey = resolveSiteKey(config);
+
+  if (!siteKey) {
+    console.error("Missing siteUrl. Run `agentbar init` or `agentbar set siteUrl <url>` first.");
+    process.exit(1);
+  }
+
+  try {
+    const response = await fetch(`${apiBase}/api/status`);
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data?.error || `Status request failed (${response.status})`);
+    }
+    const data = await response.json();
+    const items = Array.isArray(data?.items) ? data.items : [];
+    const matched = items.filter((item) => item.key === siteKey);
+    if (!matched.length) {
+      console.log("No indexed content found for", siteKey);
+      console.log("Send a message in the widget to trigger ingest.");
+      return;
+    }
+    matched.forEach((item) => {
+      console.log(`Site: ${item.url}`);
+      console.log(`Pages indexed: ${item.pages?.length ?? 0}`);
+      console.log(`Chunks: ${item.chunkCount ?? 0}`);
+      console.log(`Updated: ${item.updatedAt ? new Date(item.updatedAt).toLocaleString() : "N/A"}`);
+      console.log("");
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to load stats.";
+    console.error(message);
+    process.exit(1);
+  }
 };
 
 const setValue = (key, value) => {
@@ -483,6 +504,9 @@ const main = async () => {
       console.log(renderSnippet(config));
       return;
     }
+    case "stats":
+      await printStats();
+      return;
     case "set":
       setValue(arg1, arg2);
       return;
