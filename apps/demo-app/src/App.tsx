@@ -329,6 +329,7 @@ export default function App() {
             <a href="#how" className="transition-colors hover:text-white">How it works</a>
             <a href="#runtime" className="transition-colors hover:text-white">Runtime</a>
             <a href="#admin" className="transition-colors hover:text-white">Admin</a>
+            <a href="#faq" className="transition-colors hover:text-white">FAQ</a>
           </div>
           <div className="flex items-center gap-3">
             <ButtonSecondary>Docs</ButtonSecondary>
@@ -740,6 +741,45 @@ export default function App() {
             <div className="flex justify-center gap-4">
               <ButtonPrimary>Open dashboard</ButtonPrimary>
               <ButtonSecondary>Install the CLI</ButtonSecondary>
+            </div>
+          </div>
+        </Section>
+
+        {/* FAQ */}
+        <Section id="faq" className="border-t border-white/[0.06] bg-[#0c0e12]/50">
+          <div className="mx-auto max-w-4xl px-6">
+            <div className="mb-10 text-center">
+              <p className="mb-3 text-[12px] font-medium uppercase tracking-widest text-[#0ea5e9]">FAQ</p>
+              <h2 className="text-[32px] font-semibold text-white">Common launch questions</h2>
+            </div>
+            <div className="space-y-3">
+              {[
+                {
+                  q: "Does it scrape my entire site automatically?",
+                  a: "Yes. The widget triggers an ingest that crawls your sitemap and same-origin links, then merges a client-side snapshot of the current page for immediate context.",
+                },
+                {
+                  q: "Is the embed really one line?",
+                  a: "Yes. Hosted settings load by site key, so the script tag stays short and stable while you edit the dashboard.",
+                },
+                {
+                  q: "Can agents call arbitrary APIs?",
+                  a: "No. Agents can only call HostApi methods you explicitly expose, keeping calls safe and typed.",
+                },
+                {
+                  q: "What happens if no model is configured?",
+                  a: "The runtime falls back to a lightweight heuristic responder so the dock still behaves consistently.",
+                },
+                {
+                  q: "Is it multi-tenant?",
+                  a: "Yes. Each site key maintains isolated ingestion data and settings.",
+                },
+              ].map((item) => (
+                <div key={item.q} className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-5">
+                  <p className="text-[14px] font-medium text-white">{item.q}</p>
+                  <p className="mt-2 text-[13px] text-white/45">{item.a}</p>
+                </div>
+              ))}
             </div>
           </div>
         </Section>
