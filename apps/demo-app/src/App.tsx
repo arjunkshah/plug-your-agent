@@ -6,11 +6,11 @@ import type { HostApi, HostApiSchema } from "@arjun-shah/agentbar-runtime";
 // Logo component - Linear-style gradient sphere
 const Logo = ({ className = "" }: { className?: string }) => (
   <div className={`relative ${className}`}>
-    <div 
+    <div
       className="w-8 h-8 rounded-full"
       style={{
-        background: "linear-gradient(135deg, #5e6ad2 0%, #8b5cf6 50%, #a855f7 100%)",
-        boxShadow: "0 4px 20px -5px rgba(139, 92, 246, 0.5)"
+        background: "#0ea5e9",
+        boxShadow: "0 4px 18px -8px rgba(14, 165, 233, 0.45)"
       }}
     />
     <div 
@@ -28,19 +28,19 @@ const BackgroundOrbs = () => (
     <div 
       className="absolute -left-[20%] -top-[10%] h-[600px] w-[600px] rounded-full opacity-20 blur-[120px]"
       style={{
-        background: "radial-gradient(circle, rgba(94, 106, 210, 0.4) 0%, transparent 70%)"
+        background: "radial-gradient(circle, rgba(14, 165, 233, 0.4) 0%, transparent 70%)"
       }}
     />
     <div 
       className="absolute right-[10%] top-[20%] h-[400px] w-[400px] rounded-full opacity-15 blur-[100px]"
       style={{
-        background: "radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%)"
+        background: "radial-gradient(circle, rgba(14, 165, 233, 0.3) 0%, transparent 70%)"
       }}
     />
     <div 
       className="absolute left-[30%] bottom-[10%] h-[300px] w-[300px] rounded-full opacity-10 blur-[80px]"
       style={{
-        background: "radial-gradient(circle, rgba(15, 231, 179, 0.2) 0%, transparent 70%)"
+        background: "radial-gradient(circle, rgba(14, 165, 233, 0.2) 0%, transparent 70%)"
       }}
     />
   </div>
@@ -198,10 +198,10 @@ export default function App() {
 
   const [configForm, setConfigForm] = useState({
     siteUrl: window.location.origin,
-    themeColor: "#5e6ad2",
+    themeColor: "#0ea5e9",
     position: "right",
     greeting: "Welcome back. How can I help?",
-    suggestions: "Search pricing | Explain a feature | Draft homepage copy",
+    suggestions: "Search docs | Explain a feature | Draft homepage copy",
   });
   const [configSaving, setConfigSaving] = useState(false);
   const [configStatus, setConfigStatus] = useState("");
@@ -327,8 +327,8 @@ export default function App() {
           <div className="hidden items-center gap-8 text-[14px] text-white/50 lg:flex">
             <a href="#features" className="transition-colors hover:text-white">Features</a>
             <a href="#how" className="transition-colors hover:text-white">How it works</a>
-            <a href="#pricing" className="transition-colors hover:text-white">Pricing</a>
-            <a href="#docs" className="transition-colors hover:text-white">Docs</a>
+            <a href="#runtime" className="transition-colors hover:text-white">Runtime</a>
+            <a href="#admin" className="transition-colors hover:text-white">Admin</a>
           </div>
           <div className="flex items-center gap-3">
             <ButtonSecondary>Sign in</ButtonSecondary>
@@ -345,7 +345,7 @@ export default function App() {
             <div className={`space-y-8 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               {/* Badge */}
               <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[12px] text-white/60">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#5e6ad2]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#0ea5e9]" />
                 <span>Now with AI-powered responses</span>
               </div>
 
@@ -353,7 +353,7 @@ export default function App() {
               <h1 className="text-[42px] leading-[1.15] font-semibold tracking-tight text-white lg:text-[56px]">
                 Build intelligent
                 <br />
-                <span className="gradient-text">product assistants</span>
+                <span className="text-[#0ea5e9]">product assistants</span>
               </h1>
 
               {/* Subheadline */}
@@ -391,15 +391,15 @@ export default function App() {
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="mt-1 h-6 w-6 rounded-md bg-[#5e6ad2]" />
+                    <div className="mt-1 h-6 w-6 rounded-md bg-[#0ea5e9]" />
                     <div className="flex-1 space-y-2">
-                      <div className="h-4 w-full rounded bg-[#5e6ad2]/20" />
-                      <div className="h-4 w-2/3 rounded bg-[#5e6ad2]/10" />
+                      <div className="h-4 w-full rounded bg-[#0ea5e9]/20" />
+                      <div className="h-4 w-2/3 rounded bg-[#0ea5e9]/10" />
                     </div>
                   </div>
                   {/* Tool call indicator */}
                   <div className="ml-9 flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
-                    <div className="h-3 w-3 rounded-sm bg-[#0fe7b3]" />
+                    <div className="h-3 w-3 rounded-sm bg-[#0ea5e9]" />
                     <span className="text-[11px] text-white/40">searchFaq called</span>
                   </div>
                   {/* Input */}
@@ -411,13 +411,13 @@ export default function App() {
                 {/* Floating elements */}
                 <div className="absolute -right-4 top-10 animate-float rounded-xl border border-white/[0.08] bg-[#0c0e12] p-3 shadow-2xl">
                   <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 rounded bg-[#0fe7b3]" />
+                    <div className="h-4 w-4 rounded bg-[#0ea5e9]" />
                     <span className="text-[11px] text-white/60">Indexing complete</span>
                   </div>
                 </div>
                 <div className="absolute -left-4 bottom-20 animate-float animate-stagger-2 rounded-xl border border-white/[0.08] bg-[#0c0e12] p-3 shadow-2xl">
                   <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 rounded bg-[#5e6ad2]" />
+                    <div className="h-4 w-4 rounded bg-[#0ea5e9]" />
                     <span className="text-[11px] text-white/60">3 agents active</span>
                   </div>
                 </div>
@@ -431,7 +431,7 @@ export default function App() {
           <div className="mx-auto max-w-6xl px-6">
             <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr]">
               <div className="space-y-5">
-                <p className="text-[12px] font-medium uppercase tracking-widest text-[#5e6ad2]">Features</p>
+                <p className="text-[12px] font-medium uppercase tracking-widest text-[#0ea5e9]">Features</p>
                 <h2 className="text-[32px] font-semibold text-white">The full end-state in one list.</h2>
                 <p className="text-[15px] leading-relaxed text-white/50">
                   Every capability required for a production-grade assistant dock. Hosted config,
@@ -452,9 +452,13 @@ export default function App() {
                   { title: "Custom agents", detail: "Bring your own system prompt, tools, and UI surface.", tag: "Core" },
                   { title: "Dock placement", detail: "Left, right, or bottom placement with responsive behavior.", tag: "UX" },
                   { title: "Theme controls", detail: "Accent, background, and text overrides for brand alignment.", tag: "UX" },
+                  { title: "Data-attribute overrides", detail: "Per-page overrides without changing hosted settings.", tag: "Embed" },
                   { title: "Launcher badge", detail: "Optional badge for attention cues and status labels.", tag: "UX" },
                   { title: "Draggable launcher", detail: "Drag and persist the dock position per site.", tag: "UX" },
                   { title: "Session persistence", detail: "Store chat history locally by site key.", tag: "UX" },
+                  { title: "Per-agent history", detail: "Isolated sessions for each enabled agent in the React widget.", tag: "Core" },
+                  { title: "Tool usage markers", detail: "Inline tool-call annotations for transparency.", tag: "UX" },
+                  { title: "Accessible UI", detail: "Buttons and inputs include ARIA labels by default.", tag: "UX" },
                   { title: "Transcript export", detail: "Copy chat logs for audits or handoffs.", tag: "Admin" },
                   { title: "Minimize + reset", detail: "Compact the dock or clear the session in one tap.", tag: "UX" },
                   { title: "Scroll helpers", detail: "Auto-scroll with manual controls for long sessions.", tag: "UX" },
@@ -462,6 +466,7 @@ export default function App() {
                   { title: "Safe fallback", detail: "Runs with local heuristics when no LLM is configured.", tag: "Reliability" },
                   { title: "API schema docs", detail: "HostApi schema provides clear contracts for tools.", tag: "DX" },
                   { title: "Vercel-ready", detail: "Serverless ingest, chat, config, and status endpoints.", tag: "Deploy" },
+                  { title: "Framework-ready", detail: "Embeddable script plus React package for deeper integration.", tag: "DX" },
                   { title: "Open source", detail: "MIT licensed runtime, widget, and CLI packages.", tag: "Open" },
                 ].map((feature, index) => (
                   <div
@@ -488,7 +493,7 @@ export default function App() {
             <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
               {/* Left: Description */}
               <div>
-                <p className="mb-3 text-[12px] font-medium uppercase tracking-widest text-[#5e6ad2]">How it works</p>
+              <p className="mb-3 text-[12px] font-medium uppercase tracking-widest text-[#0ea5e9]">How it works</p>
                 <h2 className="mb-5 text-[32px] font-semibold text-white">From embed to answered in minutes</h2>
                 <p className="mb-8 text-[15px] leading-relaxed text-white/50">
                   Host the assistant once, then drop a single line of code on any site. 
@@ -554,7 +559,7 @@ export default function App() {
 
               {/* Right: Description */}
               <div className="order-1 lg:order-2">
-                <p className="mb-3 text-[12px] font-medium uppercase tracking-widest text-[#5e6ad2]">Type-safe runtime</p>
+                <p className="mb-3 text-[12px] font-medium uppercase tracking-widest text-[#0ea5e9]">Type-safe runtime</p>
                 <h2 className="mb-5 text-[32px] font-semibold text-white">Tools your agents can call</h2>
                 <p className="mb-6 text-[15px] leading-relaxed text-white/50">
                   Each agent gets a typed API to interact with your product. 
@@ -583,7 +588,7 @@ export default function App() {
         <Section id="docs" className="border-t border-white/[0.06]">
           <div className="mx-auto max-w-6xl px-6">
             <div className="mb-12">
-              <p className="mb-3 text-[12px] font-medium uppercase tracking-widest text-[#5e6ad2]">Dashboard</p>
+              <p className="mb-3 text-[12px] font-medium uppercase tracking-widest text-[#0ea5e9]">Dashboard</p>
               <h2 className="mb-5 text-[32px] font-semibold text-white">Configure from anywhere</h2>
               <p className="max-w-xl text-[15px] leading-relaxed text-white/50">
                 Update greeting, colors, and position from the hosted dashboard. 
@@ -605,7 +610,7 @@ export default function App() {
                       <input
                         value={configForm.siteUrl}
                         onChange={(e) => setConfigForm((prev) => ({ ...prev, siteUrl: e.target.value }))}
-                        className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-white placeholder:text-white/20 focus:border-[#5e6ad2] focus:outline-none"
+                        className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-white placeholder:text-white/20 focus:border-[#0ea5e9] focus:outline-none"
                         placeholder="https://your-site.com"
                       />
                     </div>
@@ -621,8 +626,8 @@ export default function App() {
                         <input
                           value={configForm.themeColor}
                           onChange={(e) => setConfigForm((prev) => ({ ...prev, themeColor: e.target.value }))}
-                          className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-white focus:border-[#5e6ad2] focus:outline-none"
-                          placeholder="#5e6ad2"
+                          className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-white focus:border-[#0ea5e9] focus:outline-none"
+                          placeholder="#0ea5e9"
                         />
                       </div>
                     </div>
@@ -632,7 +637,7 @@ export default function App() {
                     <input
                       value={configForm.greeting}
                       onChange={(e) => setConfigForm((prev) => ({ ...prev, greeting: e.target.value }))}
-                      className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-white placeholder:text-white/20 focus:border-[#5e6ad2] focus:outline-none"
+                      className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-white placeholder:text-white/20 focus:border-[#0ea5e9] focus:outline-none"
                       placeholder="Welcome back. How can I help?"
                     />
                   </div>
@@ -701,15 +706,15 @@ export default function App() {
         </Section>
 
         {/* CTA section */}
-        <Section className="border-t border-white/[0.06] bg-gradient-to-b from-transparent to-[#5e6ad2]/5">
+        <Section className="border-t border-white/[0.06] bg-gradient-to-b from-transparent to-[#0ea5e9]/10">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="mb-4 text-[36px] font-semibold text-white">Ready to ship?</h2>
             <p className="mb-8 text-[16px] text-white/50">
-              Start building your product assistant today. No credit card required.
+              Launch the dock, connect your HostApi, and ship a hosted assistant in minutes.
             </p>
             <div className="flex justify-center gap-4">
-              <ButtonPrimary>Get started free</ButtonPrimary>
-              <ButtonSecondary>Talk to sales</ButtonSecondary>
+              <ButtonPrimary>Open dashboard</ButtonPrimary>
+              <ButtonSecondary>Install the CLI</ButtonSecondary>
             </div>
           </div>
         </Section>
@@ -739,15 +744,15 @@ export default function App() {
         position="right"
         llmProvider={llmProvider}
         theme={{
-          accent: "#5e6ad2",
+          accent: "#0ea5e9",
           background: "rgba(12, 14, 18, 0.96)",
           text: "#f7f8f8",
           muted: "#8a8f98",
           border: "rgba(255,255,255,0.08)",
           panelRadius: "16px",
           dockRadius: "14px",
-          fontFamily: "Inter Variable, Inter, ui-sans-serif",
-          userBubbleBackground: "rgba(94, 106, 210, 0.15)",
+          fontFamily: "Geist, Satoshi, ui-sans-serif",
+          userBubbleBackground: "rgba(14, 165, 233, 0.15)",
           userBubbleText: "#f7f8f8",
           assistantBubbleBackground: "rgba(19, 22, 27, 0.95)",
           assistantBubbleText: "#f7f8f8",
@@ -755,7 +760,7 @@ export default function App() {
           dockShadow: "0 15px 40px -30px rgba(0, 0, 0, 0.5)",
         }}
         inputPlaceholder="Ask about this page"
-        suggestions={["Search pricing", "Summarize docs", "Draft marketing copy"]}
+        suggestions={["Search docs", "Summarize docs", "Draft marketing copy"]}
         greeting="Welcome back. How can I help?"
         showReset={true}
         showScrollButton={true}
