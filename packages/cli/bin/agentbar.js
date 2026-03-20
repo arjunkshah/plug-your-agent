@@ -56,6 +56,20 @@ const DEFAULT_CONFIG = {
   persist: false,
   storageKey: "",
   showTypingIndicator: true,
+  showExport: false,
+  exportLabel: "Copy",
+  showScrollButton: true,
+  scrollLabel: "Scroll",
+  showMinimize: false,
+  minimizedOnLoad: false,
+  minimizeLabel: "Minimize",
+  expandLabel: "Expand",
+  showTimestamps: false,
+  timestampLocale: "",
+  autoScroll: true,
+  autoScrollThreshold: 24,
+  messageMaxWidth: "85%",
+  launcherTooltip: "",
 };
 
 const configPath = path.join(process.cwd(), CONFIG_FILE);
@@ -217,6 +231,48 @@ const renderSnippet = (config) => {
   if (typeof config.showTypingIndicator === "boolean") {
     lines.push(`  data-show-typing-indicator=\"${config.showTypingIndicator}\"`);
   }
+  if (typeof config.showExport === "boolean") {
+    lines.push(`  data-show-export=\"${config.showExport}\"`);
+  }
+  if (config.exportLabel) {
+    lines.push(`  data-export-label=\"${config.exportLabel}\"`);
+  }
+  if (typeof config.showScrollButton === "boolean") {
+    lines.push(`  data-show-scroll-button=\"${config.showScrollButton}\"`);
+  }
+  if (config.scrollLabel) {
+    lines.push(`  data-scroll-label=\"${config.scrollLabel}\"`);
+  }
+  if (typeof config.showMinimize === "boolean") {
+    lines.push(`  data-show-minimize=\"${config.showMinimize}\"`);
+  }
+  if (typeof config.minimizedOnLoad === "boolean") {
+    lines.push(`  data-minimized-on-load=\"${config.minimizedOnLoad}\"`);
+  }
+  if (config.minimizeLabel) {
+    lines.push(`  data-minimize-label=\"${config.minimizeLabel}\"`);
+  }
+  if (config.expandLabel) {
+    lines.push(`  data-expand-label=\"${config.expandLabel}\"`);
+  }
+  if (typeof config.showTimestamps === "boolean") {
+    lines.push(`  data-show-timestamps=\"${config.showTimestamps}\"`);
+  }
+  if (config.timestampLocale) {
+    lines.push(`  data-timestamp-locale=\"${config.timestampLocale}\"`);
+  }
+  if (typeof config.autoScroll === "boolean") {
+    lines.push(`  data-auto-scroll=\"${config.autoScroll}\"`);
+  }
+  if (typeof config.autoScrollThreshold === "number") {
+    lines.push(`  data-auto-scroll-threshold=\"${config.autoScrollThreshold}\"`);
+  }
+  if (config.messageMaxWidth) {
+    lines.push(`  data-message-max-width=\"${config.messageMaxWidth}\"`);
+  }
+  if (config.launcherTooltip) {
+    lines.push(`  data-launcher-tooltip=\"${config.launcherTooltip}\"`);
+  }
   if (typeof config.autoIngest === "boolean") {
     lines.push(`  data-auto-ingest=\"${config.autoIngest}\"`);
   }
@@ -258,8 +314,15 @@ const printHelp = () => {
     "  greeting, draggable, dragOffset, persistPosition, positionKey, openOnLoad, autoIngest,"
   );
   console.log(
-    "  showReset, persist, storageKey, showTypingIndicator, closeOnOutsideClick\n"
+    "  showReset, persist, storageKey, showTypingIndicator, showExport, exportLabel,"
   );
+  console.log(
+    "  showScrollButton, scrollLabel, showMinimize, minimizedOnLoad, minimizeLabel, expandLabel,"
+  );
+  console.log(
+    "  showTimestamps, timestampLocale, autoScroll, autoScrollThreshold, messageMaxWidth,"
+  );
+  console.log("  launcherTooltip, closeOnOutsideClick\n");
   console.log(`Config file: ${configPath}`);
 };
 
@@ -315,6 +378,23 @@ const init = async () => {
     config.showTypingIndicator =
       (await ask(rl, "Show typing indicator (true/false)", String(config.showTypingIndicator))) ===
       "true";
+    config.showExport =
+      (await ask(rl, "Show export button (true/false)", String(config.showExport))) === "true";
+    config.exportLabel = await ask(rl, "Export label", config.exportLabel);
+    config.showScrollButton =
+      (await ask(rl, "Show scroll button (true/false)", String(config.showScrollButton))) ===
+      "true";
+    config.scrollLabel = await ask(rl, "Scroll button label", config.scrollLabel);
+    config.showMinimize =
+      (await ask(rl, "Show minimize button (true/false)", String(config.showMinimize))) ===
+      "true";
+    config.minimizedOnLoad =
+      (await ask(rl, "Minimized on load (true/false)", String(config.minimizedOnLoad))) ===
+      "true";
+    config.showTimestamps =
+      (await ask(rl, "Show timestamps (true/false)", String(config.showTimestamps))) === "true";
+    config.autoScroll =
+      (await ask(rl, "Auto scroll (true/false)", String(config.autoScroll))) === "true";
     config.autoIngest = (await ask(rl, "Auto ingest (true/false)", String(config.autoIngest))) === "true";
   } finally {
     rl.close();
@@ -340,7 +420,7 @@ const setValue = (key, value) => {
     process.exit(1);
   }
 
-  if (key === "depth" || key === "maxPages") {
+  if (key === "depth" || key === "maxPages" || key === "autoScrollThreshold") {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) {
       console.error(`${key} must be a number.`);
@@ -362,7 +442,13 @@ const setValue = (key, value) => {
     key === "persist" ||
     key === "showTypingIndicator" ||
     key === "draggable" ||
-    key === "persistPosition"
+    key === "persistPosition" ||
+    key === "showExport" ||
+    key === "showScrollButton" ||
+    key === "showMinimize" ||
+    key === "minimizedOnLoad" ||
+    key === "showTimestamps" ||
+    key === "autoScroll"
   ) {
     config[key] = value === "true" || value === true;
   } else if (key === "dragOffset") {

@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ChartLineUp,
   Compass,
+  CaretDown,
+  CaretUp,
   Lifebuoy,
   PaperPlaneRight,
   PencilLine,
@@ -31,6 +33,14 @@ export type AgentBarProps = {
   storageKey?: string;
   badgeLabel?: string;
   closeOnEscape?: boolean;
+  showMinimize?: boolean;
+  minimizedOnLoad?: boolean;
+  autoScroll?: boolean;
+  autoScrollThreshold?: number;
+  messageMaxWidth?: string;
+  showScrollButton?: boolean;
+  scrollLabel?: string;
+  launcherTooltip?: string;
   theme?: {
     accent?: string;
     background?: string;
@@ -114,6 +124,14 @@ export const AgentBar: React.FC<AgentBarProps> = ({
   storageKey,
   badgeLabel,
   closeOnEscape = true,
+  showMinimize = false,
+  minimizedOnLoad = false,
+  autoScroll = true,
+  autoScrollThreshold = 40,
+  messageMaxWidth = "85%",
+  showScrollButton = true,
+  scrollLabel = "Scroll",
+  launcherTooltip,
   theme,
 }) => {
   const enabledPlugins = useMemo(() => {
@@ -129,8 +147,12 @@ export const AgentBar: React.FC<AgentBarProps> = ({
   const [status, setStatus] = useState<AgentStatus>({});
   const [inputs, setInputs] = useState<Record<string, string>>({});
   const [panelOffsetY, setPanelOffsetY] = useState(0);
+  const [isMinimized, setIsMinimized] = useState(minimizedOnLoad);
+  const [scrollVisible, setScrollVisible] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const dockRef = useRef<HTMLDivElement | null>(null);
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  const nearBottomRef = useRef(true);
   const hydratedRef = useRef(false);
   const greetedRef = useRef(new Set<string>());
   const dragState = useRef<{ startY: number; startOffset: number } | null>(null);
@@ -170,6 +192,9 @@ export const AgentBar: React.FC<AgentBarProps> = ({
       if (typeof parsed.open === "boolean") {
         setIsOpen(parsed.open);
       }
+      if (typeof parsed.minimized === "boolean") {
+        setIsMinimized(parsed.minimized);
+      }
     } catch (_error) {
       // ignore
     } finally {
@@ -183,11 +208,14 @@ export const AgentBar: React.FC<AgentBarProps> = ({
     }
     const key = storageKey ?? `agentbar:${window.location.host}`;
     try {
-      window.localStorage.setItem(key, JSON.stringify({ messages, open: isOpen }));
+      window.localStorage.setItem(
+        key,
+        JSON.stringify({ messages, open: isOpen, minimized: isMinimized })
+      );
     } catch (_error) {
       // ignore
     }
-  }, [persist, storageKey, messages, isOpen]);
+  }, [persist, storageKey, messages, isOpen, isMinimized]);
 
   useEffect(() => {
     setPanelOffsetY(0);
@@ -299,6 +327,31 @@ export const AgentBar: React.FC<AgentBarProps> = ({
 
   const dockStyle = theme?.dockShadow ? { ...themeVars, boxShadow: theme.dockShadow } : themeVars;
 
+  const updateScrollState = useCallback(() => {
+    if (!bodyRef.current) {
+      return;
+    }
+    const threshold = autoScrollThreshold;
+    const distance =
+      bodyRef.current.scrollHeight - bodyRef.current.scrollTop - bodyRef.current.clientHeight;
+    const nearBottom = distance < threshold;
+    nearBottomRef.current = nearBottom;
+    if (showScrollButton) {
+      setScrollVisible(!nearBottom);
+    }
+  }, [autoScrollThreshold, showScrollButton]);
+
+  useEffect(() => {
+    updateScrollState();
+  }, [messages, activeAgentId, updateScrollState]);
+
+  useEffect(() => {
+    if (!autoScroll || !nearBottomRef.current || !bodyRef.current) {
+      return;
+    }
+    bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+  }, [messages, activeAgentId, autoScroll]);
+
   const stopDrag = useCallback(() => {
     dragState.current = null;
   }, []);
@@ -379,6 +432,9 @@ export const AgentBar: React.FC<AgentBarProps> = ({
     if (!greeting || !activeAgent || !isOpen) {
       return;
     }
+    if (isMinimized) {
+      return;
+    }
     if (greetedRef.current.has(activeAgent.id)) {
       return;
     }
@@ -393,7 +449,13 @@ export const AgentBar: React.FC<AgentBarProps> = ({
         { role: "assistant", content: greeting },
       ],
     }));
-  }, [activeAgent, greeting, isOpen, messages]);
+  }, [activeAgent, greeting, isOpen, isMinimized, messages]);
+
+  useEffect(() => {
+    if (isMinimized) {
+      setScrollVisible(false);
+    }
+  }, [isMinimized]);
 
   if (!enabledPlugins.length) {
     return null;
@@ -411,6 +473,7 @@ export const AgentBar: React.FC<AgentBarProps> = ({
         return current;
       }
       setIsOpen(true);
+      setIsMinimized(false);
       return pluginId;
     });
   };
@@ -446,6 +509,7 @@ export const AgentBar: React.FC<AgentBarProps> = ({
                 type="button"
                 aria-pressed={isActive}
                 aria-label={`${plugin.name} agent`}
+                title={launcherTooltip ?? plugin.name}
                 onClick={() => handleAgentClick(plugin.id)}
                 className={`flex h-10 w-10 items-center justify-center rounded-xl border border-transparent text-[color:var(--agentbar-muted)] transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--agentbar-accent-border)] ${
                   isActive
@@ -468,7 +532,7 @@ export const AgentBar: React.FC<AgentBarProps> = ({
             ...themeVars,
             boxShadow: theme?.panelShadow,
           }}
-          className={`fixed ${panelPosition} z-20 w-[92vw] max-w-[400px] rounded-[var(--agentbar-panel-radius)] border border-[color:var(--agentbar-border)] bg-[color:var(--agentbar-panel-bg)] p-4 text-[color:var(--agentbar-text)] shadow-[0_35px_70px_-50px_rgba(15,23,42,0.35)] backdrop-blur sm:w-[400px]`}
+          className={`fixed ${panelPosition} z-20 w-[92vw] max-w-[400px] rounded-[var(--agentbar-panel-radius)] border border-[color:var(--agentbar-border)] bg-[color:var(--agentbar-panel-bg)] p-4 text-[color:var(--agentbar-text)] shadow-[0_35px_70px_-50px_rgba(15,23,42,0.35)] backdrop-blur sm:w-[400px] relative`}
         >
           <div
             onPointerDown={handleDragStart}
@@ -499,6 +563,18 @@ export const AgentBar: React.FC<AgentBarProps> = ({
                 <X size={16} />
               </button>
             </div>
+            {showMinimize ? (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  aria-label={isMinimized ? "Expand panel" : "Minimize panel"}
+                  onClick={() => setIsMinimized((value) => !value)}
+                  className="rounded-full border border-[color:var(--agentbar-border)] bg-white px-3 py-1 text-[11px] text-[color:var(--agentbar-text)] transition hover:bg-slate-100 active:translate-y-[1px]"
+                >
+                  {isMinimized ? <CaretUp size={12} /> : <CaretDown size={12} />}
+                </button>
+              </div>
+            ) : null}
             {showReset ? (
               <div className="flex justify-end">
                 <button
@@ -566,7 +642,12 @@ export const AgentBar: React.FC<AgentBarProps> = ({
             )}
           </div>
 
-          <div className="mt-3 flex max-h-[52vh] flex-col gap-3 overflow-y-auto pr-1">
+          {!isMinimized ? (
+            <div
+              ref={bodyRef}
+              onScroll={updateScrollState}
+              className="mt-3 flex max-h-[52vh] flex-col gap-3 overflow-y-auto pr-1"
+            >
             {(messages[activeAgent.id] ?? []).length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[color:var(--agentbar-border)] bg-slate-50 px-4 py-6 text-xs text-[color:var(--agentbar-muted)]">
                 <p className="font-semibold text-[color:var(--agentbar-text)]">Start a new thread</p>
@@ -595,9 +676,10 @@ export const AgentBar: React.FC<AgentBarProps> = ({
                     </p>
                   ) : (
                     <div className={`flex ${step.role === "user" ? "justify-end" : "justify-start"}`}>
-                      <div
-                        className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
-                          step.role === "user"
+                    <div
+                      style={{ maxWidth: messageMaxWidth }}
+                      className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                        step.role === "user"
                           ? "border border-[color:var(--agentbar-user-border)] bg-[color:var(--agentbar-user-bg)] text-[color:var(--agentbar-user-text)]"
                           : "border border-[color:var(--agentbar-assistant-border)] bg-[color:var(--agentbar-assistant-bg)] text-[color:var(--agentbar-assistant-text)]"
                       }`}
@@ -622,7 +704,9 @@ export const AgentBar: React.FC<AgentBarProps> = ({
               </div>
             ) : null}
           </div>
+          ) : null}
 
+          {!isMinimized ? (
           <div className="mt-4 border-t border-[color:var(--agentbar-border)] pt-3">
             <label
               className="text-[11px] uppercase tracking-[0.2em] text-[color:var(--agentbar-muted)]"
@@ -650,9 +734,10 @@ export const AgentBar: React.FC<AgentBarProps> = ({
               />
               <button
                 type="button"
-                onClick={handleSend}
+                onClick={() => handleSend()}
                 disabled={status[activeAgent.id]?.sending}
                 aria-label={sendLabel}
+                title={sendLabel}
                 className="flex h-10 w-10 items-center justify-center rounded-xl border border-[color:var(--agentbar-accent-border)] bg-[color:var(--agentbar-accent-soft)] text-[color:var(--agentbar-accent)] transition hover:bg-[color:var(--agentbar-accent-strong)] disabled:cursor-not-allowed disabled:opacity-50 active:translate-y-[1px]"
               >
                 <PaperPlaneRight size={18} />
@@ -664,6 +749,22 @@ export const AgentBar: React.FC<AgentBarProps> = ({
                 : "Connect host API endpoints to enable tool calls."}
             </p>
           </div>
+          ) : null}
+          {showScrollButton && scrollVisible && !isMinimized ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (!bodyRef.current) {
+                  return;
+                }
+                bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+                updateScrollState();
+              }}
+              className="absolute bottom-4 right-4 rounded-full border border-[color:var(--agentbar-border)] bg-white px-3 py-1 text-[11px] text-[color:var(--agentbar-text)] shadow-[0_20px_40px_-30px_rgba(15,23,42,0.35)]"
+            >
+              {scrollLabel}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </>

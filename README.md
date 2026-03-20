@@ -81,6 +81,13 @@ const llmProvider = createProxyProvider({
   persist={true}
   badgeLabel="AI"
   closeOnEscape={true}
+  showMinimize={true}
+  autoScroll={true}
+  autoScrollThreshold={24}
+  messageMaxWidth="85%"
+  showScrollButton={true}
+  scrollLabel="Scroll"
+  launcherTooltip="Open assistant"
   position="right"
   llmProvider={llmProvider}
 />;
@@ -161,6 +168,20 @@ agentbar snippet
 - `data-persist` - `true` to persist messages in localStorage.
 - `data-storage-key` - override localStorage key.
 - `data-show-typing-indicator` - `true` to show typing dots.
+- `data-show-export` - `true` to show a transcript copy button.
+- `data-export-label` - label for the export button.
+- `data-show-scroll-button` - `true` to show the scroll-to-bottom button.
+- `data-scroll-label` - label for the scroll button.
+- `data-show-minimize` - `true` to show a minimize button.
+- `data-minimized-on-load` - `true` to start minimized.
+- `data-minimize-label` - minimize button label.
+- `data-expand-label` - expand button label.
+- `data-show-timestamps` - `true` to show message timestamps.
+- `data-timestamp-locale` - locale for timestamps (e.g. `en-US`).
+- `data-auto-scroll` - `true` to auto-scroll on new messages.
+- `data-auto-scroll-threshold` - px threshold before auto-scroll stops.
+- `data-message-max-width` - max width for message bubbles.
+- `data-launcher-tooltip` - tooltip for the launcher button.
 - `data-auto-ingest` - `true` to auto-index on load.
 - `data-close-on-outside-click` - `true` to close when clicking outside.
 

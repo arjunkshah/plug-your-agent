@@ -46,6 +46,20 @@ agentbar set badgeLabel "AI"
 agentbar set greeting "Welcome back. How can I help?"
 agentbar set persist true
 agentbar set showReset true
+agentbar set showExport true
+agentbar set exportLabel "Copy"
+agentbar set showScrollButton true
+agentbar set scrollLabel "Scroll"
+agentbar set showMinimize true
+agentbar set minimizedOnLoad false
+agentbar set minimizeLabel "Minimize"
+agentbar set expandLabel "Expand"
+agentbar set showTimestamps true
+agentbar set timestampLocale "en-US"
+agentbar set autoScroll true
+agentbar set autoScrollThreshold 24
+agentbar set messageMaxWidth "85%"
+agentbar set launcherTooltip "Open assistant"
 agentbar set openOnLoad false
 agentbar set autoIngest true
 ```

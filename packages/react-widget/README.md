@@ -43,6 +43,13 @@ import { AgentBar } from "@arjun-shah/agentbar-react";
   persist={true}
   badgeLabel="AI"
   closeOnEscape={true}
+  showMinimize={true}
+  autoScroll={true}
+  autoScrollThreshold={24}
+  messageMaxWidth="85%"
+  showScrollButton={true}
+  scrollLabel="Scroll"
+  launcherTooltip="Open assistant"
 />;
 ```
 

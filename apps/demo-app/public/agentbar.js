@@ -113,6 +113,35 @@
   const greeting = config.greeting || script?.dataset.greeting || "";
   const showReset = toBoolean(config.showReset ?? script?.dataset.showReset, false);
   const persist = toBoolean(config.persist ?? script?.dataset.persist, false);
+  const showExport = toBoolean(config.showExport ?? script?.dataset.showExport, false);
+  const exportLabel = config.exportLabel || script?.dataset.exportLabel || "Copy";
+  const showScrollButton = toBoolean(
+    config.showScrollButton ?? script?.dataset.showScrollButton,
+    true
+  );
+  const scrollLabel = config.scrollLabel || script?.dataset.scrollLabel || "Scroll";
+  const showMinimize = toBoolean(config.showMinimize ?? script?.dataset.showMinimize, false);
+  const minimizedOnLoad = toBoolean(
+    config.minimizedOnLoad ?? script?.dataset.minimizedOnLoad,
+    false
+  );
+  const minimizeLabel = config.minimizeLabel || script?.dataset.minimizeLabel || "Minimize";
+  const expandLabel = config.expandLabel || script?.dataset.expandLabel || "Expand";
+  const showTimestamps = toBoolean(
+    config.showTimestamps ?? script?.dataset.showTimestamps,
+    false
+  );
+  const timestampLocale = config.timestampLocale || script?.dataset.timestampLocale || "";
+  const autoScroll = toBoolean(config.autoScroll ?? script?.dataset.autoScroll, true);
+  const autoScrollThreshold = toNumber(
+    config.autoScrollThreshold ?? script?.dataset.autoScrollThreshold,
+    24
+  );
+  const messageMaxWidth = withUnit(
+    config.messageMaxWidth ?? script?.dataset.messageMaxWidth,
+    "85%"
+  );
+  const launcherTooltip = config.launcherTooltip || script?.dataset.launcherTooltip || "";
   const storageKey =
     config.storageKey || script?.dataset.storageKey || `agentbar:${siteKey || siteUrl}`;
   const showTypingIndicator = toBoolean(
@@ -178,6 +207,10 @@
     .agentbar-button-label { font-size: 12px; letter-spacing: 0.02em; }
     .agentbar-panel { position: absolute; right: 64px; top: 0; width: var(--agentbar-panel-width); background: var(--agentbar-panel-bg); border: 1px solid var(--agentbar-border); border-radius: var(--agentbar-panel-radius); box-shadow: var(--agentbar-panel-shadow); display: flex; flex-direction: column; max-height: var(--agentbar-panel-max-height); opacity: 0; transform: translateY(10px) scale(0.98); pointer-events: none; transition: opacity 0.18s ease, transform 0.18s ease; }
     .agentbar-panel.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+    .agentbar-panel.minimized .agentbar-body,
+    .agentbar-panel.minimized .agentbar-status,
+    .agentbar-panel.minimized .agentbar-footer,
+    .agentbar-panel.minimized .agentbar-scroll { display: none; }
     .agentbar-panel.left { left: 64px; right: auto; }
     .agentbar-panel.bottom { left: 50%; bottom: calc(var(--agentbar-offset-y) + 64px); right: auto; top: auto; transform: translateX(-50%); }
     .agentbar-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--agentbar-border); font-size: 13px; color: var(--agentbar-text); }
@@ -185,14 +218,16 @@
     .agentbar-header.draggable:active { cursor: grabbing; }
     .agentbar-title { font-weight: 600; }
     .agentbar-subtitle { font-size: 11px; color: var(--agentbar-muted); margin-top: 2px; }
-    .agentbar-body { padding: 12px 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .agentbar-body { padding: 12px 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
     .agentbar-empty { border: 1px dashed var(--agentbar-border); border-radius: 14px; padding: 12px; background: #f8fafc; }
     .agentbar-empty-title { font-size: 12px; font-weight: 600; }
     .agentbar-empty-subtitle { font-size: 11px; color: var(--agentbar-muted); margin-top: 4px; }
     .agentbar-suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
     .agentbar-suggestion { border: 1px solid var(--agentbar-border); background: #ffffff; color: var(--agentbar-text); border-radius: 999px; padding: 6px 10px; font-size: 11px; cursor: pointer; }
-    .agentbar-message { padding: 8px 10px; border-radius: 12px; font-size: 12px; line-height: 1.5; border: 1px solid var(--agentbar-assistant-border); background: var(--agentbar-assistant-bg); color: var(--agentbar-assistant-text); white-space: pre-wrap; }
-    .agentbar-message.user { border-color: var(--agentbar-user-border); background: var(--agentbar-user-bg); color: var(--agentbar-user-text); }
+    .agentbar-message { padding: 8px 10px; border-radius: 12px; font-size: 12px; line-height: 1.5; border: 1px solid var(--agentbar-assistant-border); background: var(--agentbar-assistant-bg); color: var(--agentbar-assistant-text); white-space: pre-wrap; max-width: var(--agentbar-message-max-width); align-self: flex-start; }
+    .agentbar-message.user { border-color: var(--agentbar-user-border); background: var(--agentbar-user-bg); color: var(--agentbar-user-text); align-self: flex-end; }
+    .agentbar-text { display: block; }
+    .agentbar-timestamp { display: block; font-size: 10px; color: var(--agentbar-muted); margin-top: 4px; }
     .agentbar-typing { display: flex; gap: 4px; align-items: center; }
     .agentbar-typing span { width: 6px; height: 6px; border-radius: 999px; background: var(--agentbar-muted); opacity: 0.4; animation: agentbar-dot 1.1s infinite; }
     .agentbar-typing span:nth-child(2) { animation-delay: 0.2s; }
@@ -204,6 +239,10 @@
     .agentbar-status { font-size: 11px; color: var(--agentbar-muted); padding: 0 14px 10px; }
     .agentbar-close { border: 1px solid var(--agentbar-border); background: #f1f5f9; color: var(--agentbar-text); border-radius: 10px; font-size: 11px; padding: 4px 8px; cursor: pointer; }
     .agentbar-reset { border: 1px solid var(--agentbar-border); background: #ffffff; color: var(--agentbar-text); border-radius: 10px; font-size: 11px; padding: 4px 8px; cursor: pointer; }
+    .agentbar-export { border: 1px solid var(--agentbar-border); background: #ffffff; color: var(--agentbar-text); border-radius: 10px; font-size: 11px; padding: 4px 8px; cursor: pointer; }
+    .agentbar-minimize { border: 1px solid var(--agentbar-border); background: #ffffff; color: var(--agentbar-text); border-radius: 10px; font-size: 11px; padding: 4px 8px; cursor: pointer; }
+    .agentbar-scroll { position: absolute; right: 16px; bottom: 64px; display: none; align-items: center; gap: 6px; border: 1px solid var(--agentbar-border); background: #ffffff; color: var(--agentbar-text); border-radius: 999px; font-size: 11px; padding: 6px 12px; cursor: pointer; box-shadow: var(--agentbar-panel-shadow); }
+    .agentbar-scroll.show { display: inline-flex; }
     @keyframes agentbar-dot { 0%, 80%, 100% { transform: translateY(0); opacity: 0.3; } 40% { transform: translateY(-3px); opacity: 0.8; } }
   `;
 
@@ -223,6 +262,8 @@
           </div>
           <div style="display:flex; gap:6px;">
             ${showReset ? `<button class="agentbar-reset" aria-label="Reset">Reset</button>` : ""}
+            ${showExport ? `<button class="agentbar-export" aria-label="Export">${exportLabel}</button>` : ""}
+            ${showMinimize ? `<button class="agentbar-minimize" aria-label="Minimize">${minimizeLabel}</button>` : ""}
             <button class="agentbar-close" aria-label="Close">Close</button>
           </div>
         </div>
@@ -232,6 +273,7 @@
           <input class="agentbar-input" placeholder="${inputPlaceholder}" />
           <button class="agentbar-send">${sendLabel}</button>
         </div>
+        <button class="agentbar-scroll" aria-label="Scroll to bottom">${scrollLabel}</button>
       </div>
     </div>
   `;
@@ -245,7 +287,10 @@
   const openButton = shadow.querySelector(".agentbar-button");
   const closeButton = shadow.querySelector(".agentbar-close");
   const resetButton = shadow.querySelector(".agentbar-reset");
+  const minimizeButton = shadow.querySelector(".agentbar-minimize");
   const header = shadow.querySelector(".agentbar-header");
+  const exportButton = shadow.querySelector(".agentbar-export");
+  const scrollButton = shadow.querySelector(".agentbar-scroll");
 
   if (!root || !panel || !body || !status || !input || !send || !openButton || !closeButton) {
     return;
@@ -300,6 +345,7 @@
   root.style.setProperty("--agentbar-assistant-bg", assistantBubbleBackground);
   root.style.setProperty("--agentbar-assistant-text", assistantBubbleText);
   root.style.setProperty("--agentbar-assistant-border", assistantBubbleBorder);
+  root.style.setProperty("--agentbar-message-max-width", messageMaxWidth);
   root.style.setProperty("--agentbar-panel-width", panelWidth);
   root.style.setProperty("--agentbar-panel-max-height", panelMaxHeight);
   root.style.setProperty("--agentbar-panel-radius", panelRadius);
@@ -313,7 +359,12 @@
     ingested: false,
     loading: false,
     greeted: false,
+    minimized: minimizedOnLoad,
   };
+
+  if (launcherTooltip) {
+    openButton.title = launcherTooltip;
+  }
 
   let dragOffsetY = dragOffset;
   const clampOffset = (value) => {
@@ -351,6 +402,9 @@
       if (typeof parsed?.open === "boolean") {
         state.open = parsed.open;
       }
+      if (typeof parsed?.minimized === "boolean") {
+        state.minimized = parsed.minimized;
+      }
     } catch (_error) {
       // ignore
     }
@@ -381,7 +435,7 @@
     try {
       localStorage.setItem(
         storageKey,
-        JSON.stringify({ messages: state.messages, open: state.open })
+        JSON.stringify({ messages: state.messages, open: state.open, minimized: state.minimized })
       );
     } catch (_error) {
       // ignore
@@ -395,6 +449,8 @@
   const setOpen = (value) => {
     state.open = value;
     panel.classList.toggle("open", value);
+    panel.classList.toggle("minimized", state.minimized);
+    openButton.setAttribute("aria-expanded", value ? "true" : "false");
     if (value) {
       requestAnimationFrame(() => {
         input.focus();
@@ -410,21 +466,63 @@
     savePersisted();
   };
 
+  const setMinimized = (value) => {
+    state.minimized = value;
+    panel.classList.toggle("minimized", value);
+    if (minimizeButton) {
+      minimizeButton.textContent = value ? expandLabel : minimizeLabel;
+    }
+    savePersisted();
+  };
+
   const setStatus = (text) => {
     status.textContent = text || "";
   };
 
+  const formatTimestamp = (value) => {
+    const date = new Date(value);
+    return date.toLocaleTimeString(timestampLocale || undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const shouldAutoScroll = () => {
+    if (!autoScroll) {
+      return false;
+    }
+    return body.scrollHeight - body.scrollTop - body.clientHeight < autoScrollThreshold;
+  };
+
+  const createMessageNode = (message) => {
+    const item = document.createElement("div");
+    item.className = `agentbar-message ${message.role}`;
+    const content = document.createElement("span");
+    content.className = "agentbar-text";
+    content.textContent = message.content;
+    item.appendChild(content);
+    if (showTimestamps) {
+      const time = document.createElement("span");
+      time.className = "agentbar-timestamp";
+      time.textContent = formatTimestamp(message.createdAt || Date.now());
+      item.appendChild(time);
+    }
+    return { item, content };
+  };
+
   const appendMessage = (role, content) => {
-    const message = { role, content };
+    const message = { role, content, createdAt: Date.now() };
     state.messages.push(message);
     emptyState.style.display = "none";
-    const item = document.createElement("div");
-    item.className = `agentbar-message ${role}`;
-    item.textContent = content;
+    const shouldScroll = shouldAutoScroll();
+    const { item, content: contentNode } = createMessageNode(message);
     body.appendChild(item);
-    body.scrollTop = body.scrollHeight;
+    if (shouldScroll) {
+      body.scrollTop = body.scrollHeight;
+    }
     savePersisted();
-    return { message, item };
+    updateScrollButton();
+    return { message, item, contentNode };
   };
 
   const renderHistory = () => {
@@ -436,9 +534,7 @@
     }
     emptyState.style.display = "none";
     state.messages.forEach((message) => {
-      const item = document.createElement("div");
-      item.className = `agentbar-message ${message.role}`;
-      item.textContent = message.content;
+      const { item } = createMessageNode(message);
       body.appendChild(item);
     });
   };
@@ -446,6 +542,15 @@
   const typingEl = document.createElement("div");
   typingEl.className = "agentbar-message agentbar-typing";
   typingEl.innerHTML = "<span></span><span></span><span></span>";
+
+  const updateScrollButton = () => {
+    if (!scrollButton || !showScrollButton) {
+      return;
+    }
+    const threshold = 24;
+    const atBottom = body.scrollHeight - body.scrollTop - body.clientHeight < threshold;
+    scrollButton.classList.toggle("show", !atBottom);
+  };
 
   const ingest = async () => {
     if (state.ingested) {
@@ -481,8 +586,11 @@
     state.loading = true;
     setStatus("Thinking...");
     if (showTypingIndicator) {
+      const shouldScroll = shouldAutoScroll();
       body.appendChild(typingEl);
-      body.scrollTop = body.scrollHeight;
+      if (shouldScroll) {
+        body.scrollTop = body.scrollHeight;
+      }
     }
 
     try {
@@ -508,7 +616,7 @@
         return;
       }
 
-      const { message, item } = appendMessage("assistant", "");
+      const { message, contentNode } = appendMessage("assistant", "");
       if (typingEl.parentElement) {
         typingEl.remove();
       }
@@ -516,6 +624,7 @@
       const decoder = new TextDecoder();
       let buffer = "";
 
+      const shouldScroll = shouldAutoScroll();
       while (true) {
         const { value, done } = await reader.read();
         if (done) {
@@ -538,8 +647,10 @@
             const parsed = JSON.parse(payload);
             if (parsed.token) {
               message.content += parsed.token;
-              item.textContent = message.content;
-              body.scrollTop = body.scrollHeight;
+              contentNode.textContent = message.content;
+              if (shouldScroll) {
+                body.scrollTop = body.scrollHeight;
+              }
             }
           } catch (_error) {
             // Ignore parse errors.
@@ -549,6 +660,7 @@
 
       state.loading = false;
       setStatus("");
+      updateScrollButton();
     } catch (error) {
       if (typingEl.parentElement) {
         typingEl.remove();
@@ -556,6 +668,7 @@
       appendMessage("assistant", "Could not reach the assistant.");
       state.loading = false;
       setStatus("");
+      updateScrollButton();
     }
   };
 
@@ -569,6 +682,39 @@
       emptyState.style.display = "block";
       state.greeted = false;
       savePersisted();
+    });
+  }
+  if (minimizeButton) {
+    minimizeButton.addEventListener("click", () => setMinimized(!state.minimized));
+  }
+  if (exportButton) {
+    exportButton.addEventListener("click", async () => {
+      const transcript = state.messages
+        .map((message) => {
+          const role = message.role === "user" ? "User" : "Assistant";
+          const stamp = showTimestamps
+            ? `[${formatTimestamp(message.createdAt || Date.now())}] `
+            : "";
+          return `${stamp}${role}: ${message.content}`;
+        })
+        .join("\n");
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(transcript);
+          setStatus("Transcript copied.");
+        } else {
+          setStatus("Clipboard not available.");
+        }
+      } catch (_error) {
+        setStatus("Copy failed.");
+      }
+      setTimeout(() => setStatus(""), 1500);
+    });
+  }
+  if (scrollButton) {
+    scrollButton.addEventListener("click", () => {
+      body.scrollTop = body.scrollHeight;
+      updateScrollButton();
     });
   }
   send.addEventListener("click", sendMessage);
@@ -596,17 +742,6 @@
     });
   }
 
-  renderHistory();
-  setOpen(state.open);
-
-  if (openOnLoad) {
-    setOpen(true);
-  }
-
-  if (autoIngest) {
-    ingest();
-  }
-})();
   if (draggable && header && (position === "left" || position === "right")) {
     header.classList.add("draggable");
   }
@@ -626,6 +761,9 @@
 
   if (draggable && header && (position === "left" || position === "right")) {
     header.addEventListener("pointerdown", (event) => {
+      if (event.target && event.target.closest("button")) {
+        return;
+      }
       dragState.active = true;
       dragState.startY = event.clientY;
       dragState.startOffset = dragOffsetY;
@@ -635,3 +773,18 @@
   }
 
   window.addEventListener("resize", () => applyDragOffset(dragOffsetY));
+
+  renderHistory();
+  setMinimized(state.minimized);
+  setOpen(state.open);
+  updateScrollButton();
+
+  if (openOnLoad) {
+    setOpen(true);
+  }
+
+  if (autoIngest) {
+    ingest();
+  }
+  body.addEventListener("scroll", updateScrollButton);
+})();
