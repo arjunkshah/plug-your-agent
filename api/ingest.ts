@@ -228,11 +228,16 @@ export default async function handler(req: any, res: any) {
 
       visited.add(next.url);
 
-      const response = await fetch(next.url, {
-        headers: {
-          "User-Agent": "AgentPluginBar/1.0",
-        },
-      });
+      let response: Response | null = null;
+      try {
+        response = await fetch(next.url, {
+          headers: {
+            "User-Agent": "AgentPluginBar/1.0",
+          },
+        });
+      } catch (_error) {
+        continue;
+      }
 
       if (!response.ok) {
         continue;

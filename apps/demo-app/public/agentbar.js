@@ -568,7 +568,7 @@
     }
     try {
       setStatus("Indexing site content...");
-      await fetch(`${apiBase}/api/ingest`, {
+      const response = await fetch(`${apiBase}/api/ingest`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -578,10 +578,17 @@
           siteKey: siteKey || undefined,
         }),
       });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const message = data?.error || "Failed to ingest site content.";
+        setStatus(message);
+        return;
+      }
       state.ingested = true;
       setStatus("Ready to help.");
     } catch (error) {
-      setStatus("Failed to ingest site content.");
+      const message = error instanceof Error ? error.message : "Failed to ingest site content.";
+      setStatus(message);
     }
   };
 
@@ -623,7 +630,12 @@
         if (typingEl.parentElement) {
           typingEl.remove();
         }
-        appendMessage("assistant", "Something went wrong. Try again soon.");
+        const data = await response.json().catch(() => ({}));
+        const message =
+          typeof data?.error === "string" && data.error.trim()
+            ? data.error.trim()
+            : "Something went wrong. Try again soon.";
+        appendMessage("assistant", message);
         state.loading = false;
         setStatus("");
         updateScrollButton();
