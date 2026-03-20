@@ -310,13 +310,13 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#08090a] text-white">
+    <div className="min-h-[100dvh] bg-[#0b0d12] text-white">
       {/* Background effects */}
       <BackgroundOrbs />
       <GridPattern />
 
       {/* Sticky header */}
-      <header className={`fixed left-0 right-0 top-0 z-50 border-b border-white/[0.06] bg-[#08090a]/80 backdrop-blur-xl transition-all duration-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+      <header className={`fixed left-0 right-0 top-0 z-50 border-b border-white/[0.06] bg-[#0b0d12]/80 backdrop-blur-xl transition-all duration-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <Logo />
@@ -331,8 +331,8 @@ export default function App() {
             <a href="#admin" className="transition-colors hover:text-white">Admin</a>
           </div>
           <div className="flex items-center gap-3">
-            <ButtonSecondary>Sign in</ButtonSecondary>
-            <ButtonPrimary>Get started</ButtonPrimary>
+            <ButtonSecondary>Docs</ButtonSecondary>
+            <ButtonPrimary>Get snippet</ButtonPrimary>
           </div>
         </nav>
       </header>
@@ -585,7 +585,7 @@ export default function App() {
         </Section>
 
         {/* Admin / Dashboard section */}
-        <Section id="docs" className="border-t border-white/[0.06]">
+        <Section id="admin" className="border-t border-white/[0.06]">
           <div className="mx-auto max-w-6xl px-6">
             <div className="mb-12">
               <p className="mb-3 text-[12px] font-medium uppercase tracking-widest text-[#0ea5e9]">Dashboard</p>
