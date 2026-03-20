@@ -32,9 +32,7 @@ const hostApi: HostApi = {
       },
     ];
 
-    return base.filter((item) =>
-      item.title.toLowerCase().includes(query.toLowerCase())
-    );
+    return base.filter((item) => item.title.toLowerCase().includes(query.toLowerCase()));
   },
   createTicket: async (input) => {
     console.log("Support ticket created", input);
@@ -153,7 +151,7 @@ const resolveSiteKey = (value: string) => {
 export default function App() {
   const [configForm, setConfigForm] = useState({
     siteUrl: window.location.origin,
-    themeColor: "#059669",
+    themeColor: "#0f766e",
     position: "right",
     greeting: "Welcome back. How can I help?",
     suggestions: "Search pricing | Explain a feature | Draft homepage copy",
@@ -271,130 +269,154 @@ export default function App() {
   return (
     <div className="min-h-[100dvh] bg-slate-50 text-slate-900">
       <div className="relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-32 top-16 h-72 w-72 rounded-full bg-emerald-200/30 blur-[120px]" />
+          <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-slate-200/50 blur-[140px]" />
+        </div>
         <div
-          className="pointer-events-none absolute inset-0"
+          className="pointer-events-none absolute inset-0 opacity-[0.45]"
           style={{
             backgroundImage:
-              "radial-gradient(circle at top left, rgba(16,185,129,0.08), transparent 55%), radial-gradient(circle at 75% 10%, rgba(15,23,42,0.05), transparent 50%), linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(248,250,252,0.7) 35%, rgba(241,245,249,1) 100%)",
+              "linear-gradient(rgba(15,23,42,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.05) 1px, transparent 1px)",
+            backgroundSize: "120px 120px",
           }}
         />
-        <div className="pointer-events-none absolute inset-0 opacity-[0.35]" style={{
-          backgroundImage:
-            "linear-gradient(rgba(15,23,42,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.05) 1px, transparent 1px)",
-          backgroundSize: "120px 120px",
-        }} />
 
-        <header className="relative border-b border-slate-200/70 bg-white/60 backdrop-blur">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.3em] text-emerald-700">
-                Agent Plugin Bar
-              </p>
-              <p className="text-sm font-semibold text-slate-900">Agent dock for product teams</p>
+        <header className="relative border-b border-slate-200/70 bg-white/70 backdrop-blur">
+          <nav className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-5">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-2xl border border-emerald-200/70 bg-emerald-100/60" />
+              <div>
+                <p className="text-xs uppercase tracking-[0.32em] text-emerald-700">
+                  Agent Plugin Bar
+                </p>
+                <p className="text-sm font-semibold text-slate-900">Docked agents for product teams</p>
+              </div>
             </div>
-            <nav className="hidden items-center gap-6 text-xs text-slate-500 md:flex">
-              <a href="#install" className="transition hover:text-slate-800">Install</a>
-              <a href="#usage" className="transition hover:text-slate-800">Usage</a>
-              <a href="#embed" className="transition hover:text-slate-800">Embed</a>
-              <a href="#api" className="transition hover:text-slate-800">API</a>
-              <a href="#admin" className="transition hover:text-slate-800">Admin</a>
-              <a href="#security" className="transition hover:text-slate-800">Security</a>
-              <button className="rounded-full border border-emerald-600/30 bg-emerald-600/10 px-4 py-1 text-xs text-emerald-700 transition hover:bg-emerald-600/20 active:translate-y-[1px]">
-                Get the package
-              </button>
-            </nav>
-          </div>
+            <div className="hidden items-center gap-6 text-sm text-slate-600 lg:flex">
+              <a className="transition hover:text-slate-900" href="#how">
+                Workflow
+              </a>
+              <a className="transition hover:text-slate-900" href="#embed">
+                One-line embed
+              </a>
+              <a className="transition hover:text-slate-900" href="#runtime">
+                Runtime
+              </a>
+              <a className="transition hover:text-slate-900" href="#admin">
+                Admin
+              </a>
+            </div>
+            <div className="flex items-center gap-3">
+              <a
+                href="#embed"
+                className="rounded-full border border-emerald-200 bg-white px-4 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 active:translate-y-[1px]"
+              >
+                Get snippet
+              </a>
+              <a
+                href="#admin"
+                className="rounded-full border border-slate-200 bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 active:translate-y-[1px]"
+              >
+                Open console
+              </a>
+            </div>
+          </nav>
         </header>
 
-        <main className="relative mx-auto max-w-6xl px-6 py-16">
-          <div className="grid gap-12 lg:grid-cols-[1.2fr_0.8fr]">
-            <div className="space-y-6">
-              <div
-                className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-slate-500"
-                style={{ animationDelay: "40ms" }}
-              >
-                {apiBase ? "Groq proxy connected" : "AI provider in mock mode"}
+        <main className="relative mx-auto max-w-[1400px] px-6 pb-20 pt-16 lg:pt-20">
+          <div className="grid gap-14 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="space-y-10">
+              <div className="inline-flex items-center gap-3 rounded-full border border-emerald-200/70 bg-white px-4 py-2 text-xs text-emerald-700">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse-soft" />
+                Hosted settings are live
               </div>
-              <h1
-                className="animate-fade-up text-4xl font-semibold tracking-tight text-slate-900 md:text-5xl"
-                style={{ animationDelay: "120ms" }}
-              >
-                Add an agent dock to your product in one component.
-              </h1>
-              <p
-                className="animate-fade-up max-w-[60ch] text-base text-slate-600"
-                style={{ animationDelay: "200ms" }}
-              >
-                Agent Plugin Bar is a drop-in system for support, onboarding, and content agents.
-                Each plugin has its own prompt, tools, and UI surface while safely calling your
-                HostApi functions.
-              </p>
-              <div className="animate-fade-up flex flex-wrap gap-3" style={{ animationDelay: "280ms" }}>
-                <button className="rounded-full border border-emerald-600/30 bg-emerald-600/10 px-5 py-2 text-sm text-emerald-700 transition hover:bg-emerald-600/20 active:translate-y-[1px]">
-                  Install package
-                </button>
+              <div className="space-y-6">
+                <h1 className="text-4xl font-semibold tracking-tight text-slate-900 md:text-6xl">
+                  Launch an agent dock on any site with a single script.
+                </h1>
+                <p className="text-base text-slate-600 leading-relaxed max-w-[60ch]">
+                  Agent Plugin Bar gives you a configurable assistant surface for support, onboarding,
+                  content, and analytics. Settings live in a hosted dashboard, while the widget
+                  auto-indexes your pages and answers with streaming responses.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
                 <a
-                  href="#usage"
-                  className="rounded-full border border-slate-200 bg-white px-5 py-2 text-sm text-slate-700 transition hover:bg-slate-100 active:translate-y-[1px]"
+                  href="#embed"
+                  className="rounded-full bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-[0_18px_45px_-30px_rgba(15,118,110,0.6)] transition hover:-translate-y-[1px] active:translate-y-[1px]"
                 >
-                  View quickstart
+                  Copy one-line embed
+                </a>
+                <a
+                  href="#runtime"
+                  className="rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 active:translate-y-[1px]"
+                >
+                  View runtime
                 </a>
               </div>
-              <div
-                className="animate-fade-up rounded-2xl border border-slate-200 bg-white p-4"
-                style={{ animationDelay: "360ms" }}
-              >
-                <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Quickstart</p>
-                <pre className="mt-3 whitespace-pre-wrap text-xs text-slate-700">{quickstart}</pre>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Setup</p>
+                  <p className="mt-3 text-sm font-semibold text-slate-900">One script, hosted settings</p>
+                  <p className="mt-2 text-xs text-slate-500">
+                    Update colors, greeting, and position from the dashboard without re-deploying.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Runtime</p>
+                  <p className="mt-3 text-sm font-semibold text-slate-900">Typed tools only</p>
+                  <p className="mt-2 text-xs text-slate-500">
+                    Agents can only call your HostApi methods, not arbitrary network requests.
+                  </p>
+                </div>
               </div>
-              <p className="animate-fade-up text-xs text-slate-500" style={{ animationDelay: "440ms" }}>
-                Set <span className="text-slate-700">VITE_AGENTBAR_API_BASE</span> to point at your
-                deployed API. Without it, the runtime uses local fallback behavior.
-              </p>
             </div>
 
-            <div className="space-y-4">
-              <div
-                className="animate-fade-up rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_30px_70px_-55px_rgba(15,23,42,0.3)]"
-                style={{ animationDelay: "200ms" }}
-              >
+            <div className="relative">
+              <div className="animate-fade-up rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_40px_90px_-60px_rgba(15,23,42,0.4)]">
                 <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>Agent Dock Preview</span>
-                  <span className="animate-shimmer rounded-full border border-emerald-600/30 bg-gradient-to-r from-emerald-600/10 via-emerald-500/20 to-emerald-600/10 px-2 py-[2px] text-[10px] text-emerald-700">
-                    Live
+                  <span>Live dock preview</span>
+                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-[2px] text-[10px] text-emerald-700">
+                    Active
                   </span>
                 </div>
-                <div className="mt-4 space-y-3">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-                    Support Desk: find the reset steps for the environment.
+                <div className="mt-5 space-y-4">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                    Ask: summarize the latest release notes.
                   </div>
-                  <div className="rounded-xl border border-emerald-600/20 bg-emerald-600/10 px-3 py-2 text-xs text-emerald-700">
-                    Found two guides. Want a ticket opened as well?
+                  <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50 px-4 py-3 text-xs text-emerald-800">
+                    Pulled two notes from /changelog. Want a draft email?
                   </div>
-                  <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-500">
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[11px] text-slate-500">
                     Tool used: searchFaq
                   </div>
                 </div>
               </div>
 
-              <div
-                className="animate-fade-up rounded-[28px] border border-slate-200 bg-white p-6"
-                style={{ animationDelay: "280ms" }}
-              >
-                <p className="text-sm font-semibold text-slate-900">Runtime flow</p>
-                <div className="mt-4 space-y-3 text-xs text-slate-600">
-                  <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                    <span>User request</span>
-                    <span className="text-emerald-700">Agent plugin</span>
+              <div className="mt-6 grid gap-3">
+                <div className="animate-float-slow rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_25px_60px_-50px_rgba(15,23,42,0.35)]">
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Runtime loop</p>
+                  <div className="mt-4 space-y-2 text-xs text-slate-600">
+                    <div className="flex items-center justify-between">
+                      <span>User message</span>
+                      <span className="text-emerald-700">Input</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Agent decision</span>
+                      <span className="text-emerald-700">Tool call</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Host response</span>
+                      <span className="text-emerald-700">Answer</span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                    <span>Tool call</span>
-                    <span className="text-emerald-700">Host API</span>
-                  </div>
-                  <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                    <span>Response</span>
-                    <span className="text-emerald-700">User UI</span>
-                  </div>
+                </div>
+                <div className="animate-float-slow rounded-2xl border border-slate-200 bg-slate-900 px-5 py-4 text-xs text-slate-100 shadow-[0_30px_80px_-55px_rgba(15,23,42,0.55)]">
+                  <p className="text-[10px] uppercase tracking-[0.35em] text-slate-300">Streaming</p>
+                  <p className="mt-3 text-sm font-semibold">
+                    Tokens render instantly in the dock, no refresh needed.
+                  </p>
                 </div>
               </div>
             </div>
@@ -402,345 +424,286 @@ export default function App() {
         </main>
       </div>
 
-      <section id="install" className="mx-auto max-w-6xl px-6 py-16">
-        <div className="grid gap-12 lg:grid-cols-[240px_1fr]">
-          <aside className="space-y-2 text-xs text-slate-500 lg:sticky lg:top-24 lg:self-start">
-            <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-700">Docs</p>
-            <a href="#install" className="block text-slate-700">Install</a>
-            <a href="#usage" className="block transition hover:text-slate-700">Usage</a>
-            <a href="#embed" className="block transition hover:text-slate-700">Embed</a>
-            <a href="#api" className="block transition hover:text-slate-700">API</a>
-            <a href="#agents" className="block transition hover:text-slate-700">Default agents</a>
-            <a href="#ai" className="block transition hover:text-slate-700">AI providers</a>
-            <a href="#admin" className="block transition hover:text-slate-700">Admin</a>
-            <a href="#security" className="block transition hover:text-slate-700">Security model</a>
-            <a href="#styling" className="block transition hover:text-slate-700">Styling</a>
-            <a href="#faq" className="block transition hover:text-slate-700">FAQ</a>
-          </aside>
+      <section id="how" className="mx-auto max-w-[1400px] px-6 py-20">
+        <div className="grid gap-12 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="space-y-6">
+            <p className="text-xs uppercase tracking-[0.3em] text-emerald-700">Workflow</p>
+            <h2 className="text-3xl font-semibold text-slate-900">From embed to answered in minutes.</h2>
+            <p className="text-sm text-slate-600">
+              Host the assistant once, then drop a single line of code on any site. The widget
+              snapshots the current page for instant context and crawls the rest of your site in the
+              background.
+            </p>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
+              <pre className="whitespace-pre-wrap">{cliSnippet}</pre>
+            </div>
+          </div>
+          <div className="space-y-4">
+            {[
+              {
+                title: "1. Register the site",
+                body: "Run the CLI once to sync your site URL and receive the hosted snippet.",
+              },
+              {
+                title: "2. Drop the embed",
+                body: "Paste one script tag and the dock appears on the page with your settings.",
+              },
+              {
+                title: "3. Update from the dashboard",
+                body: "Adjust greeting, tone, colors, and position without touching code.",
+              },
+            ].map((step, index) => (
+              <div
+                key={step.title}
+                className="animate-fade-up rounded-2xl border border-slate-200 bg-white px-5 py-4"
+                style={{ animationDelay: `${index * 120}ms` }}
+              >
+                <p className="text-sm font-semibold text-slate-900">{step.title}</p>
+                <p className="mt-2 text-xs text-slate-500">{step.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-          <div className="space-y-12">
-            <div className="space-y-4">
-              <h2 className="text-3xl font-semibold text-slate-900">Install</h2>
-              <p className="text-sm text-slate-600">
-                Install the widget and runtime packages. React is a peer dependency.
+      <section id="embed" className="mx-auto max-w-[1400px] px-6 pb-20">
+        <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-5">
+            <p className="text-xs uppercase tracking-[0.3em] text-emerald-700">One-line embed</p>
+            <h2 className="text-3xl font-semibold text-slate-900">Keep the embed short. Store the rest.</h2>
+            <p className="text-sm text-slate-600">
+              Settings are pulled from the hosted dashboard. All you need is the script tag and your
+              site key.
+            </p>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 text-xs text-slate-700">
+              <pre className="whitespace-pre-wrap">{embedSnippet}</pre>
+            </div>
+            <p className="text-xs text-slate-500">
+              Deploy this repo to Vercel, set GROQ_API_KEY, and the widget will auto-ingest your
+              content. Each site gets its own key for isolation.
+            </p>
+          </div>
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6">
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Quickstart</p>
+              <pre className="mt-3 whitespace-pre-wrap text-xs text-slate-700">{quickstart}</pre>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-900 p-6 text-xs text-slate-100">
+              <p className="text-[10px] uppercase tracking-[0.35em] text-slate-300">Console</p>
+              <p className="mt-3 text-sm font-semibold">Edit settings in one place.</p>
+              <p className="mt-2 text-xs text-slate-400">
+                Use the Admin dashboard below or the CLI to sync new defaults instantly.
               </p>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
-                <pre>npm install @arjun-shah/agentbar-react @arjun-shah/agentbar-runtime</pre>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
-                <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">CLI</p>
-                <pre className="mt-2 whitespace-pre-wrap">{cliSnippet}</pre>
-              </div>
-            </div>
-
-            <div id="usage" className="space-y-4">
-              <h3 className="text-2xl font-semibold text-slate-900">Usage</h3>
-              <p className="text-sm text-slate-600">
-                Add a single component and pass the agents you want to enable.
-              </p>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
-                <pre className="whitespace-pre-wrap">{quickstart}</pre>
-              </div>
-            </div>
-
-            <div id="embed" className="space-y-4">
-              <h3 className="text-2xl font-semibold text-slate-900">One-line embed</h3>
-              <p className="text-sm text-slate-600">
-                Drop this script tag into any site. The hosted dashboard stores your widget settings,
-                so your embed stays one short line.
-              </p>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
-                <pre className="whitespace-pre-wrap">{embedSnippet}</pre>
-              </div>
-              <p className="text-xs text-slate-500">
-                Deploy this repo to Vercel, set GROQ_API_KEY, and the widget will auto-ingest the site
-                content for answers. data-site-key lets you host multiple sites on one backend.
-              </p>
-            </div>
-
-            <div id="api" className="space-y-4">
-              <h3 className="text-2xl font-semibold text-slate-900">AgentBar props</h3>
-              <div className="grid gap-3 text-sm text-slate-600">
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                  <span className="font-semibold text-slate-800">apiSchema</span> - describes the host
-                  API surface for future tooling and UI.
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                  <span className="font-semibold text-slate-800">hostApi</span> - functions that tools
-                  can call.
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                  <span className="font-semibold text-slate-800">enabledAgents</span> - string ids for
-                  enabled plugins.
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                  <span className="font-semibold text-slate-800">agents</span> - optional custom
-                  AgentPlugin definitions.
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                  <span className="font-semibold text-slate-800">position</span> - dock placement on
-                  left, right, or bottom.
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                  <span className="font-semibold text-slate-800">llmProvider</span> - optional live AI
-                  provider for responses.
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-2xl font-semibold text-slate-900">HostApi interface</h3>
-              <p className="text-sm text-slate-600">
-                Agents call these methods instead of arbitrary fetch requests.
-              </p>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
-                <pre className="whitespace-pre-wrap">{hostApiSnippet}</pre>
-              </div>
-            </div>
-
-            <div id="agents" className="space-y-4">
-              <h3 className="text-2xl font-semibold text-slate-900">Default agents</h3>
-              <div className="space-y-3 text-sm text-slate-600">
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                  <p className="font-semibold text-slate-800">Support Desk</p>
-                  <p>Tools: searchFaq, createTicket.</p>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                  <p className="font-semibold text-slate-800">Onboarding Guide</p>
-                  <p>Tools: listKeyFeatures, openTutorial.</p>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                  <p className="font-semibold text-slate-800">Content Studio</p>
-                  <p>Tools: getPageContext, suggestCopy.</p>
-                </div>
-              </div>
-            </div>
-
-            <div id="ai" className="space-y-4">
-              <h3 className="text-2xl font-semibold text-slate-900">AI providers</h3>
-              <p className="text-sm text-slate-600">
-                Use the Groq proxy provider when you are ready. The runtime falls back to a local
-                heuristic when no provider is supplied.
-              </p>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
-                <pre className="whitespace-pre-wrap">{`import { createProxyProvider } from "@arjun-shah/agentbar-runtime";
-
-const llmProvider = createProxyProvider({
-  endpoint: "https://your-deploy-url/api/chat",
-  siteUrl: window.location.origin,
-});`}</pre>
-              </div>
-            </div>
-
-            <div id="admin" className="space-y-4">
-              <h3 className="text-2xl font-semibold text-slate-900">Admin</h3>
-              <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">Hosted settings</p>
-                    <p className="text-xs text-slate-500">
-                      Edit the settings stored on the hosted dashboard. Your embed stays a single
-                      line.
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  <label className="space-y-2 text-xs text-slate-600">
-                    <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">
-                      Site URL
-                    </span>
-                    <input
-                      value={configForm.siteUrl}
-                      onChange={(event) =>
-                        setConfigForm((prev) => ({ ...prev, siteUrl: event.target.value }))
-                      }
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
-                      placeholder="https://your-site.com"
-                    />
-                  </label>
-                  <label className="space-y-2 text-xs text-slate-600">
-                    <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">
-                      Theme color
-                    </span>
-                    <input
-                      value={configForm.themeColor}
-                      onChange={(event) =>
-                        setConfigForm((prev) => ({ ...prev, themeColor: event.target.value }))
-                      }
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
-                      placeholder="#059669"
-                    />
-                  </label>
-                  <label className="space-y-2 text-xs text-slate-600">
-                    <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">
-                      Position
-                    </span>
-                    <select
-                      value={configForm.position}
-                      onChange={(event) =>
-                        setConfigForm((prev) => ({ ...prev, position: event.target.value }))
-                      }
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
-                    >
-                      <option value="right">Right</option>
-                      <option value="left">Left</option>
-                      <option value="bottom">Bottom</option>
-                    </select>
-                  </label>
-                  <label className="space-y-2 text-xs text-slate-600">
-                    <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">
-                      Greeting
-                    </span>
-                    <input
-                      value={configForm.greeting}
-                      onChange={(event) =>
-                        setConfigForm((prev) => ({ ...prev, greeting: event.target.value }))
-                      }
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
-                      placeholder="Welcome back. How can I help?"
-                    />
-                  </label>
-                </div>
-                <label className="mt-4 block space-y-2 text-xs text-slate-600">
-                  <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">
-                    Suggestions (use | to separate)
-                  </span>
-                  <input
-                    value={configForm.suggestions}
-                    onChange={(event) =>
-                      setConfigForm((prev) => ({ ...prev, suggestions: event.target.value }))
-                    }
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
-                    placeholder="Search pricing | Explain a feature"
-                  />
-                </label>
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={saveHostedConfig}
-                    className="rounded-full border border-emerald-600/30 bg-emerald-600/10 px-4 py-2 text-xs text-emerald-700 transition hover:bg-emerald-600/20"
-                  >
-                    {configSaving ? "Saving..." : "Save settings"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={copyHostedSnippet}
-                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700 transition hover:bg-slate-100"
-                  >
-                    Copy snippet
-                  </button>
-                  {configStatus ? (
-                    <span className="text-xs text-slate-500">{configStatus}</span>
-                  ) : null}
-                </div>
-                <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
-                  <pre className="whitespace-pre-wrap">{hostedSnippet}</pre>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h4 className="text-xl font-semibold text-slate-900">Indexing console</h4>
-              <p className="text-sm text-slate-600">
-                View indexed sites and trigger a re-index. This uses the in-memory store, so data
-                resets on cold starts unless you add persistence.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={loadStatus}
-                  className="rounded-full border border-emerald-600/30 bg-emerald-600/10 px-4 py-2 text-xs text-emerald-700 transition hover:bg-emerald-600/20"
-                >
-                  {statusLoading ? "Loading..." : "Load status"}
-                </button>
-                <button
-                  type="button"
-                  onClick={reindexCurrent}
-                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700 transition hover:bg-slate-100"
-                >
-                  Reindex current site
-                </button>
-              </div>
-              {statusError ? (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700">
-                  {statusError}
-                </div>
-              ) : null}
-              <div className="space-y-3">
-                {statusItems.length === 0 ? (
-                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500">
-                    No indexed sites yet. Click \"Load status\" to check again.
-                  </div>
-                ) : (
-                  statusItems.map((item) => (
-                    <div key={item.key} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                      <p className="text-xs font-semibold text-slate-800">{item.key}</p>
-                      <p className="text-xs text-slate-500">{item.url}</p>
-                      <div className="mt-2 space-y-1 text-[11px] text-slate-600">
-                        {item.pages.slice(0, 4).map((page) => (
-                          <div key={page.url}>{page.title || page.url}</div>
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-              </div>
-            </div>
-
-            <div id="security" className="space-y-4">
-              <h3 className="text-2xl font-semibold text-slate-900">Security model</h3>
-              <div className="space-y-3 text-sm text-slate-600">
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                  Tools are scoped to the plugin definition and can only call HostApi methods.
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                  Each agent runs in its own session with isolated prompts and history.
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                  Tool input schemas provide a typed contract for host-side validation.
-                </div>
-              </div>
-            </div>
-
-            <div id="styling" className="space-y-4">
-              <h3 className="text-2xl font-semibold text-slate-900">Styling</h3>
-              <p className="text-sm text-slate-600">
-                The widget uses Tailwind classes. Add the package output to your Tailwind content
-                list.
-              </p>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
-                <pre>{`content: [
-  "./src/**/*.{ts,tsx}",
-  "./node_modules/@arjun-shah/agentbar-react/dist/**/*.{js,ts,jsx,tsx}",
-]`}</pre>
-              </div>
-            </div>
-
-            <div id="faq" className="space-y-4">
-              <h3 className="text-2xl font-semibold text-slate-900">FAQ</h3>
-              <div className="space-y-3 text-sm text-slate-600">
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                  <p className="font-semibold text-slate-800">Can I add custom agents?</p>
-                  <p>Yes. Pass a custom AgentPlugin array to the agents prop.</p>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                  <p className="font-semibold text-slate-800">Does it require a live LLM?</p>
-                  <p>No. The runtime includes a fallback that uses simple routing rules.</p>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                  <p className="font-semibold text-slate-800">Can I place the dock on any edge?</p>
-                  <p>Yes. Use the position prop with left, right, or bottom.</p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <footer className="border-t border-slate-200/70 bg-white/70">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-8 text-xs text-slate-500 md:flex-row md:items-center md:justify-between">
-          <span>Agent Plugin Bar documentation</span>
-          <span>Built for support, onboarding, and content workflows.</span>
+      <section id="runtime" className="mx-auto max-w-[1400px] px-6 pb-20">
+        <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="space-y-5">
+            <p className="text-xs uppercase tracking-[0.3em] text-emerald-700">Runtime</p>
+            <h2 className="text-3xl font-semibold text-slate-900">Typed tools, predictable calls.</h2>
+            <p className="text-sm text-slate-600">
+              Each agent gets a system prompt, tools, and UI surface. Tools can only call the HostApi
+              methods you provide.
+            </p>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 text-xs text-slate-700">
+              <pre className="whitespace-pre-wrap">{hostApiSnippet}</pre>
+            </div>
+          </div>
+          <div className="grid gap-4">
+            {[
+              {
+                title: "Support Desk",
+                body: "Answers questions, runs searchFaq, logs createTicket.",
+              },
+              {
+                title: "Onboarding Guide",
+                body: "Shows listKeyFeatures and triggers openTutorial flows.",
+              },
+              {
+                title: "Content Studio",
+                body: "Reads getPageContext and suggests copy variants.",
+              },
+            ].map((agent, index) => (
+              <div
+                key={agent.title}
+                className="animate-fade-up rounded-2xl border border-slate-200 bg-white px-5 py-4"
+                style={{ animationDelay: `${index * 120}ms` }}
+              >
+                <p className="text-sm font-semibold text-slate-900">{agent.title}</p>
+                <p className="mt-2 text-xs text-slate-500">{agent.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="admin" className="mx-auto max-w-[1400px] px-6 pb-24">
+        <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="space-y-6">
+            <p className="text-xs uppercase tracking-[0.3em] text-emerald-700">Admin</p>
+            <h2 className="text-3xl font-semibold text-slate-900">Hosted dashboard for every site.</h2>
+            <p className="text-sm text-slate-600">
+              Save settings to the hosted config store and keep the embed snippet short. Changes take
+              effect without code deploys.
+            </p>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="space-y-2 text-xs text-slate-600">
+                  <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">Site URL</span>
+                  <input
+                    value={configForm.siteUrl}
+                    onChange={(event) =>
+                      setConfigForm((prev) => ({ ...prev, siteUrl: event.target.value }))
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                    placeholder="https://your-site.com"
+                  />
+                </label>
+                <label className="space-y-2 text-xs text-slate-600">
+                  <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">
+                    Theme color
+                  </span>
+                  <input
+                    value={configForm.themeColor}
+                    onChange={(event) =>
+                      setConfigForm((prev) => ({ ...prev, themeColor: event.target.value }))
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                    placeholder="#0f766e"
+                  />
+                </label>
+                <label className="space-y-2 text-xs text-slate-600">
+                  <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">Position</span>
+                  <select
+                    value={configForm.position}
+                    onChange={(event) =>
+                      setConfigForm((prev) => ({ ...prev, position: event.target.value }))
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                  >
+                    <option value="right">Right</option>
+                    <option value="left">Left</option>
+                    <option value="bottom">Bottom</option>
+                  </select>
+                </label>
+                <label className="space-y-2 text-xs text-slate-600">
+                  <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">Greeting</span>
+                  <input
+                    value={configForm.greeting}
+                    onChange={(event) =>
+                      setConfigForm((prev) => ({ ...prev, greeting: event.target.value }))
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                    placeholder="Welcome back. How can I help?"
+                  />
+                </label>
+              </div>
+              <label className="mt-4 block space-y-2 text-xs text-slate-600">
+                <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">
+                  Suggestions (use | to separate)
+                </span>
+                <input
+                  value={configForm.suggestions}
+                  onChange={(event) =>
+                    setConfigForm((prev) => ({ ...prev, suggestions: event.target.value }))
+                  }
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+                  placeholder="Search pricing | Explain a feature"
+                />
+              </label>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={saveHostedConfig}
+                  className="rounded-full border border-emerald-600/30 bg-emerald-600/10 px-4 py-2 text-xs text-emerald-700 transition hover:bg-emerald-600/20 active:translate-y-[1px]"
+                >
+                  {configSaving ? "Saving..." : "Save settings"}
+                </button>
+                <button
+                  type="button"
+                  onClick={copyHostedSnippet}
+                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700 transition hover:bg-slate-100 active:translate-y-[1px]"
+                >
+                  Copy snippet
+                </button>
+                {configStatus ? <span className="text-xs text-slate-500">{configStatus}</span> : null}
+              </div>
+              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                <pre className="whitespace-pre-wrap">{hostedSnippet}</pre>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-5">
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Indexing console</p>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={loadStatus}
+                className="rounded-full border border-emerald-600/30 bg-emerald-600/10 px-4 py-2 text-xs text-emerald-700 transition hover:bg-emerald-600/20 active:translate-y-[1px]"
+              >
+                {statusLoading ? "Loading..." : "Load status"}
+              </button>
+              <button
+                type="button"
+                onClick={reindexCurrent}
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-700 transition hover:bg-slate-100 active:translate-y-[1px]"
+              >
+                Reindex current site
+              </button>
+            </div>
+            {statusError ? (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700">
+                {statusError}
+              </div>
+            ) : null}
+            <div className="space-y-3">
+              {statusLoading ? (
+                <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
+                  <div className="h-3 w-24 rounded-full bg-slate-200 animate-pulse-soft" />
+                  <div className="mt-3 h-3 w-40 rounded-full bg-slate-200 animate-pulse-soft" />
+                  <div className="mt-4 h-2 w-full rounded-full bg-slate-100 animate-pulse-soft" />
+                  <div className="mt-2 h-2 w-5/6 rounded-full bg-slate-100 animate-pulse-soft" />
+                </div>
+              ) : statusItems.length === 0 ? (
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500">
+                  No indexed sites yet. Click "Load status" to check again.
+                </div>
+              ) : (
+                statusItems.map((item) => (
+                  <div key={item.key} className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
+                    <p className="text-xs font-semibold text-slate-800">{item.key}</p>
+                    <p className="text-xs text-slate-500">{item.url}</p>
+                    <div className="mt-2 space-y-1 text-[11px] text-slate-600">
+                      {item.pages.slice(0, 4).map((page) => (
+                        <div key={page.url}>{page.title || page.url}</div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-4 px-6 py-8 text-xs text-slate-500">
+          <p>Agent Plugin Bar. Hosted assistants for modern product teams.</p>
+          <div className="flex items-center gap-4">
+            <a className="transition hover:text-slate-700" href="#embed">
+              Embed
+            </a>
+            <a className="transition hover:text-slate-700" href="#runtime">
+              Runtime
+            </a>
+            <a className="transition hover:text-slate-700" href="#admin">
+              Admin
+            </a>
+          </div>
         </div>
       </footer>
 
@@ -750,6 +713,30 @@ const llmProvider = createProxyProvider({
         enabledAgents={["support", "onboarding", "content"]}
         position="right"
         llmProvider={llmProvider}
+        theme={{
+          accent: "#0f766e",
+          background: "rgba(255,255,255,0.98)",
+          text: "#0f172a",
+          muted: "#64748b",
+          border: "rgba(226,232,240,0.9)",
+          panelRadius: "20px",
+          dockRadius: "18px",
+          fontFamily: "Geist, Satoshi, ui-sans-serif",
+          userBubbleBackground: "rgba(15,118,110,0.12)",
+          userBubbleText: "#0f172a",
+          assistantBubbleBackground: "#f8fafc",
+          assistantBubbleText: "#0f172a",
+          panelShadow: "0 30px 70px -50px rgba(15,23,42,0.35)",
+          dockShadow: "0 20px 50px -40px rgba(15,23,42,0.2)",
+        }}
+        inputPlaceholder="Ask about this page"
+        suggestions={["Search pricing", "Summarize docs", "Draft marketing copy"]}
+        greeting="Welcome back. How can I help?"
+        showReset={true}
+        showScrollButton={true}
+        scrollLabel="Scroll"
+        showMinimize={true}
+        launcherTooltip="Open assistant"
       />
     </div>
   );

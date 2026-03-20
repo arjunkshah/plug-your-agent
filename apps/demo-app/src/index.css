@@ -41,6 +41,28 @@ code {
     }
   }
 
+  @keyframes float-slow {
+    0% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+    100% {
+      transform: translateY(0px);
+    }
+  }
+
+  @keyframes pulse-soft {
+    0%,
+    100% {
+      opacity: 0.45;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
   .animate-fade-up {
     animation: fade-up 700ms ease-out both;
   }
@@ -48,5 +70,14 @@ code {
   .animate-shimmer {
     background-size: 200% 200%;
     animation: shimmer 6s ease-in-out infinite;
+  }
+
+  .animate-float-slow {
+    animation: float-slow 6s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 2.4s ease-in-out infinite;
   }
 }
