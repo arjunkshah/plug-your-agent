@@ -1,166 +1,211 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AgentBar } from "@arjun-shah/agentbar-react";
 import { createProxyProvider } from "@arjun-shah/agentbar-runtime";
 import type { HostApi, HostApiSchema } from "@arjun-shah/agentbar-runtime";
 
-const apiBase = import.meta.env.VITE_AGENTBAR_API_BASE || "";
-const apiBaseDisplay = apiBase || window.location.origin;
-const llmProvider = apiBase
-  ? createProxyProvider({
-      endpoint: `${apiBase}/api/chat`,
-      siteUrl: window.location.origin,
-    })
-  : undefined;
+// Logo component - Linear-style gradient sphere
+const Logo = ({ className = "" }: { className?: string }) => (
+  <div className={`relative ${className}`}>
+    <div 
+      className="w-8 h-8 rounded-full"
+      style={{
+        background: "linear-gradient(135deg, #5e6ad2 0%, #8b5cf6 50%, #a855f7 100%)",
+        boxShadow: "0 4px 20px -5px rgba(139, 92, 246, 0.5)"
+      }}
+    />
+    <div 
+      className="absolute inset-0 rounded-full opacity-30"
+      style={{
+        background: "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4) 0%, transparent 50%)"
+      }}
+    />
+  </div>
+);
 
-const hostApi: HostApi = {
-  searchFaq: async (query) => {
-    const base = [
-      {
-        title: "Invite teammates to a workspace",
-        snippet: "Add collaborators from the Settings panel and assign roles.",
-        url: "/docs/workspaces/invites",
-      },
-      {
-        title: "Reset a project environment",
-        snippet: "Clean caches and restart the environment safely.",
-        url: "/docs/projects/reset",
-      },
-      {
-        title: "Export a usage report",
-        snippet: "Generate CSV exports for internal reviews.",
-        url: "/docs/analytics/export",
-      },
-    ];
+// Gradient orb background component
+const BackgroundOrbs = () => (
+  <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div 
+      className="absolute -left-[20%] -top-[10%] h-[600px] w-[600px] rounded-full opacity-20 blur-[120px]"
+      style={{
+        background: "radial-gradient(circle, rgba(94, 106, 210, 0.4) 0%, transparent 70%)"
+      }}
+    />
+    <div 
+      className="absolute right-[10%] top-[20%] h-[400px] w-[400px] rounded-full opacity-15 blur-[100px]"
+      style={{
+        background: "radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%)"
+      }}
+    />
+    <div 
+      className="absolute left-[30%] bottom-[10%] h-[300px] w-[300px] rounded-full opacity-10 blur-[80px]"
+      style={{
+        background: "radial-gradient(circle, rgba(15, 231, 179, 0.2) 0%, transparent 70%)"
+      }}
+    />
+  </div>
+);
 
-    return base.filter((item) => item.title.toLowerCase().includes(query.toLowerCase()));
-  },
-  createTicket: async (input) => {
-    console.log("Support ticket created", input);
-    return { ticketId: `TCK-${Math.floor(1000 + Math.random() * 9000)}` };
-  },
-  listKeyFeatures: async () => {
-    return [
+// Grid pattern background
+const GridPattern = () => (
+  <div 
+    className="pointer-events-none absolute inset-0 opacity-[0.4]"
+    style={{
+      backgroundImage: `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)`,
+      backgroundSize: "48px 48px"
+    }}
+  />
+);
+
+// Code block component - Linear style
+const CodeBlock = ({ code, label }: { code: string; label?: string }) => (
+  <div className="group relative overflow-hidden rounded-lg border border-white/[0.08] bg-[#0c0e12]">
+    {label && (
+      <div className="border-b border-white/[0.06] px-4 py-2">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-white/40">{label}</span>
+      </div>
+    )}
+    <pre className="overflow-x-auto p-4 text-[13px] leading-relaxed text-white/70">
+      <code>{code}</code>
+    </pre>
+    <button
+      onClick={() => navigator.clipboard.writeText(code)}
+      className="absolute right-3 top-3 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[11px] text-white/40 opacity-0 transition-all hover:bg-white/[0.08] hover:text-white/60 group-hover:opacity-100"
+    >
+      Copy
+    </button>
+  </div>
+);
+
+// Feature card component
+const FeatureCard = ({ 
+  title, 
+  description, 
+  icon,
+  delay = 0 
+}: { 
+  title: string; 
+  description: string; 
+  icon?: React.ReactNode;
+  delay?: number;
+}) => (
+  <div 
+    className="group rounded-xl border border-white/[0.08] bg-white/[0.02] p-5 transition-all duration-300 hover:border-white/[0.12] hover:bg-white/[0.04]"
+    style={{ animationDelay: `${delay}ms` }}
+  >
+    {icon && <div className="mb-3 text-white/60">{icon}</div>}
+    <h3 className="mb-1.5 text-[15px] font-semibold text-white">{title}</h3>
+    <p className="text-[13px] leading-relaxed text-white/50">{description}</p>
+  </div>
+);
+
+// Button components - Linear style
+const ButtonPrimary = ({ children, onClick, className = "" }: { children: React.ReactNode; onClick?: () => void; className?: string }) => (
+  <button
+    onClick={onClick}
+    className={`relative overflow-hidden rounded-full bg-white px-5 py-2.5 text-[14px] font-medium text-black transition-all hover:bg-white/90 active:scale-[0.98] ${className}`}
+  >
+    {children}
+  </button>
+);
+
+const ButtonSecondary = ({ children, onClick, className = "" }: { children: React.ReactNode; onClick?: () => void; className?: string }) => (
+  <button
+    onClick={onClick}
+    className={`relative overflow-hidden rounded-full border border-white/[0.15] bg-white/[0.03] px-5 py-2.5 text-[14px] font-medium text-white transition-all hover:bg-white/[0.08] hover:border-white/[0.25] active:scale-[0.98] ${className}`}
+  >
+    {children}
+  </button>
+);
+
+// Section component
+const Section = ({ 
+  id, 
+  children, 
+  className = "" 
+}: { 
+  id?: string; 
+  children: React.ReactNode; 
+  className?: string;
+}) => (
+  <section id={id} className={`relative py-24 ${className}`}>
+    {children}
+  </section>
+);
+
+// Animated gradient border component
+const GradientBorderCard = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <div className={`relative rounded-2xl border border-white/[0.08] bg-[#0c0e12] p-6 ${className}`}>
+    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent" />
+    {children}
+  </div>
+);
+
+// Main App
+export default function App() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const apiBase = import.meta.env.VITE_AGENTBAR_API_BASE || "";
+  const apiBaseDisplay = apiBase || window.location.origin;
+  const llmProvider = apiBase
+    ? createProxyProvider({
+        endpoint: `${apiBase}/api/chat`,
+        siteUrl: window.location.origin,
+      })
+    : undefined;
+
+  const hostApi: HostApi = {
+    searchFaq: async (query) => {
+      const base = [
+        { title: "Invite teammates to a workspace", snippet: "Add collaborators from the Settings panel and assign roles.", url: "/docs/workspaces/invites" },
+        { title: "Reset a project environment", snippet: "Clean caches and restart the environment safely.", url: "/docs/projects/reset" },
+        { title: "Export a usage report", snippet: "Generate CSV exports for internal reviews.", url: "/docs/analytics/export" },
+      ];
+      return base.filter((item) => item.title.toLowerCase().includes(query.toLowerCase()));
+    },
+    createTicket: async (input) => {
+      console.log("Support ticket created", input);
+      return { ticketId: `TCK-${Math.floor(1000 + Math.random() * 9000)}` };
+    },
+    listKeyFeatures: async () => [
       "Unified agent registry with plugin toggles",
       "Typed tool calls scoped to host APIs",
       "Per-agent session panels with history",
       "UI dock configurable on any edge",
-    ];
-  },
-  openTutorial: async (id) => {
-    console.log("Opening tutorial", id);
-  },
-  getPageContext: async () => {
-    return {
-      pageName: "Workspace Overview",
-      hints: ["active users", "recent changes", "launch notes"],
-    };
-  },
-  suggestCopy: async (area) => {
-    if (area.toLowerCase().includes("hero")) {
-      return "Run agent workflows directly in your product interface, with zero context switching.";
-    }
-    return "Guide users with contextual agent plugins that learn your platform language.";
-  },
-};
+    ],
+    openTutorial: async (id) => console.log("Opening tutorial", id),
+    getPageContext: async () => ({ pageName: "Workspace Overview", hints: ["active users", "recent changes", "launch notes"] }),
+    suggestCopy: async (area) => {
+      if (area.toLowerCase().includes("hero")) {
+        return "Run agent workflows directly in your product interface, with zero context switching.";
+      }
+      return "Guide users with contextual agent plugins that learn your platform language.";
+    },
+  };
 
-const apiSchema: HostApiSchema = {
-  searchFaq: {
-    description: "Search internal help docs.",
-    input: "query: string",
-    output: "FAQ[]",
-  },
-  createTicket: {
-    description: "Create a support ticket.",
-    input: "{ subject, body, userId? }",
-    output: "{ ticketId }",
-  },
-  listKeyFeatures: {
-    description: "List the primary product features.",
-    output: "string[]",
-  },
-  openTutorial: {
-    description: "Open a tutorial by id.",
-    input: "id: string",
-  },
-  getPageContext: {
-    description: "Return page metadata and hints.",
-    output: "{ pageName, hints }",
-  },
-  suggestCopy: {
-    description: "Generate copy for a specific area.",
-    input: "area: string",
-    output: "string",
-  },
-};
+  const apiSchema: HostApiSchema = {
+    searchFaq: { description: "Search internal help docs.", input: "query: string", output: "FAQ[]" },
+    createTicket: { description: "Create a support ticket.", input: "{ subject, body, userId? }", output: "{ ticketId }" },
+    listKeyFeatures: { description: "List the primary product features.", output: "string[]" },
+    openTutorial: { description: "Open a tutorial by id.", input: "id: string" },
+    getPageContext: { description: "Return page metadata and hints.", output: "{ pageName, hints }" },
+    suggestCopy: { description: "Generate copy for a specific area.", input: "area: string", output: "string" },
+  };
 
-const quickstart = `import { AgentBar } from "@arjun-shah/agentbar-react";
-import { createProxyProvider } from "@arjun-shah/agentbar-runtime";
-
-const llmProvider = createProxyProvider({
-  endpoint: "https://your-deploy-url/api/chat",
-  siteUrl: window.location.origin,
-});
-
-<AgentBar
-  apiSchema={apiSchema}
-  hostApi={hostApi}
-  enabledAgents={["support", "onboarding", "content"]}
-  position="right"
-  llmProvider={llmProvider}
-/>`;
-
-const hostApiSnippet = `export interface HostApi {
-  searchFaq(query: string): Promise<FAQ[]>;
-  createTicket(input: { subject: string; body: string; userId?: string }): Promise<{ ticketId: string }>;
-  listKeyFeatures(): Promise<string[]>;
-  openTutorial(id: string): Promise<void>;
-  getPageContext(): Promise<{ pageName: string; hints: string[] }>;
-  suggestCopy(area: string): Promise<string>;
-}`;
-
-const embedSnippet = `<script src="https://agent-pug.vercel.app/agentbar.js" data-site-key="your-site-key"></script>`;
-
-const cliSnippet = `npm install -g agentbar-cli\nagentbar init\nagentbar snippet`;
-
-const normalizeUrl = (value: string) => {
-  try {
-    if (!value) {
-      return "";
-    }
-    if (value.startsWith("http://") || value.startsWith("https://")) {
-      return new URL(value).toString();
-    }
-    return new URL(`https://${value}`).toString();
-  } catch (_error) {
-    return "";
-  }
-};
-
-const resolveSiteKey = (value: string) => {
-  const normalized = normalizeUrl(value);
-  if (!normalized) {
-    return "";
-  }
-  try {
-    return new URL(normalized).hostname;
-  } catch {
-    return "";
-  }
-};
-
-export default function App() {
   const [configForm, setConfigForm] = useState({
     siteUrl: window.location.origin,
-    themeColor: "#0f766e",
+    themeColor: "#5e6ad2",
     position: "right",
     greeting: "Welcome back. How can I help?",
     suggestions: "Search pricing | Explain a feature | Draft homepage copy",
   });
   const [configSaving, setConfigSaving] = useState(false);
   const [configStatus, setConfigStatus] = useState("");
-  const [statusItems, setStatusItems] = useState<
-    Array<{ key: string; url: string; pages: Array<{ url: string; title: string }> }>
-  >([]);
+  const [statusItems, setStatusItems] = useState<Array<{ key: string; url: string; pages: Array<{ url: string; title: string }> }>>([]);
   const [statusError, setStatusError] = useState("");
   const [statusLoading, setStatusLoading] = useState(false);
 
@@ -170,13 +215,10 @@ export default function App() {
     try {
       const response = await fetch(`${apiBaseDisplay}/api/status`);
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.error || "Failed to load status");
-      }
+      if (!response.ok) throw new Error(data?.error || "Failed to load status");
       setStatusItems(Array.isArray(data.items) ? data.items : []);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      setStatusError(message);
+      setStatusError(error instanceof Error ? error.message : "Unknown error");
     } finally {
       setStatusLoading(false);
     }
@@ -189,12 +231,7 @@ export default function App() {
       const response = await fetch(`${apiBaseDisplay}/api/ingest`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: window.location.origin,
-          depth: 2,
-          maxPages: 25,
-          force: true,
-        }),
+        body: JSON.stringify({ url: window.location.origin, depth: 2, maxPages: 25, force: true }),
       });
       if (!response.ok) {
         const data = await response.json();
@@ -202,17 +239,34 @@ export default function App() {
       }
       await loadStatus();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      setStatusError(message);
+      setStatusError(error instanceof Error ? error.message : "Unknown error");
       setStatusLoading(false);
+    }
+  };
+
+  const normalizeUrl = (value: string) => {
+    try {
+      if (!value) return "";
+      if (value.startsWith("http://") || value.startsWith("https://")) return new URL(value).toString();
+      return new URL(`https://${value}`).toString();
+    } catch {
+      return "";
+    }
+  };
+
+  const resolveSiteKey = (value: string) => {
+    const normalized = normalizeUrl(value);
+    if (!normalized) return "";
+    try {
+      return new URL(normalized).hostname;
+    } catch {
+      return "";
     }
   };
 
   const hostedSiteUrl = normalizeUrl(configForm.siteUrl) || window.location.origin;
   const hostedSiteKey = resolveSiteKey(hostedSiteUrl);
-  const hostedSnippet = `<script src="${apiBaseDisplay}/agentbar.js" data-site-key="${
-    hostedSiteKey || "your-site-key"
-  }"></script>`;
+  const hostedSnippet = `<script src="${apiBaseDisplay}/agentbar.js" data-site-key="${hostedSiteKey || "your-site-key"}"></script>`;
 
   const saveHostedConfig = async () => {
     setConfigSaving(true);
@@ -223,10 +277,7 @@ export default function App() {
       setConfigSaving(false);
       return;
     }
-    const suggestions = configForm.suggestions
-      .split("|")
-      .map((item) => item.trim())
-      .filter(Boolean);
+    const suggestions = configForm.suggestions.split("|").map((item) => item.trim()).filter(Boolean);
 
     try {
       const response = await fetch(`${apiBaseDisplay}/api/config`, {
@@ -234,14 +285,7 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           siteKey,
-          config: {
-            siteUrl: hostedSiteUrl,
-            themeColor: configForm.themeColor,
-            position: configForm.position,
-            greeting: configForm.greeting,
-            suggestions,
-            apiBase: apiBaseDisplay,
-          },
+          config: { siteUrl: hostedSiteUrl, themeColor: configForm.themeColor, position: configForm.position, greeting: configForm.greeting, suggestions, apiBase: apiBaseDisplay },
         }),
       });
       if (!response.ok) {
@@ -250,8 +294,7 @@ export default function App() {
       }
       setConfigStatus("Settings saved.");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to save settings.";
-      setConfigStatus(message);
+      setConfigStatus(error instanceof Error ? error.message : "Failed to save settings.");
     } finally {
       setConfigSaving(false);
     }
@@ -261,470 +304,434 @@ export default function App() {
     try {
       await navigator.clipboard.writeText(hostedSnippet);
       setConfigStatus("Snippet copied.");
-    } catch (_error) {
+    } catch {
       setConfigStatus("Copy failed. Select the snippet manually.");
     }
   };
 
   return (
-    <div className="min-h-[100dvh] bg-slate-950 text-slate-100">
-      <div className="relative overflow-hidden border-b border-slate-900/60">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-32 top-20 h-[420px] w-[420px] rounded-full bg-emerald-500/10 blur-[160px]" />
-          <div className="absolute right-0 top-0 h-[520px] w-[520px] rounded-full bg-slate-700/20 blur-[180px]" />
+    <div className="min-h-[100dvh] bg-[#08090a] text-white">
+      {/* Background effects */}
+      <BackgroundOrbs />
+      <GridPattern />
+
+      {/* Sticky header */}
+      <header className={`fixed left-0 right-0 top-0 z-50 border-b border-white/[0.06] bg-[#08090a]/80 backdrop-blur-xl transition-all duration-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+        <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <Logo />
+            <div>
+              <p className="text-xs font-medium tracking-widest text-white/60">AGENT PLUGIN BAR</p>
+            </div>
+          </div>
+          <div className="hidden items-center gap-8 text-[14px] text-white/50 lg:flex">
+            <a href="#features" className="transition-colors hover:text-white">Features</a>
+            <a href="#how" className="transition-colors hover:text-white">How it works</a>
+            <a href="#pricing" className="transition-colors hover:text-white">Pricing</a>
+            <a href="#docs" className="transition-colors hover:text-white">Docs</a>
+          </div>
+          <div className="flex items-center gap-3">
+            <ButtonSecondary>Sign in</ButtonSecondary>
+            <ButtonPrimary>Get started</ButtonPrimary>
+          </div>
+        </nav>
+      </header>
+
+      {/* Hero section */}
+      <main className="relative pt-32">
+        <div className="mx-auto max-w-6xl px-6 pb-24">
+          <div className="grid gap-16 lg:grid-cols-2 lg:gap-12">
+            {/* Left: Hero content */}
+            <div className={`space-y-8 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[12px] text-white/60">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#5e6ad2]" />
+                <span>Now with AI-powered responses</span>
+              </div>
+
+              {/* Headline */}
+              <h1 className="text-[42px] leading-[1.15] font-semibold tracking-tight text-white lg:text-[56px]">
+                Build intelligent
+                <br />
+                <span className="gradient-text">product assistants</span>
+              </h1>
+
+              {/* Subheadline */}
+              <p className="max-w-xl text-[16px] leading-relaxed text-white/50">
+                Embed a Linear-grade AI assistant in your product. Configure agents, define tools, and ship contextual help in minutes—not months.
+              </p>
+
+              {/* CTA buttons */}
+              <div className="flex flex-wrap gap-3">
+                <ButtonPrimary>Start building →</ButtonPrimary>
+                <ButtonSecondary>View demo</ButtonSecondary>
+              </div>
+
+              {/* Social proof */}
+              <div className="flex items-center gap-6 pt-4">
+                <div className="flex -space-x-2">
+                  {["bg-red-400", "bg-blue-400", "bg-green-400", "bg-yellow-400"].map((color, i) => (
+                    <div key={i} className={`h-8 w-8 rounded-full border-2 border-[#08090a] ${color}`} />
+                  ))}
+                </div>
+                <span className="text-[13px] text-white/40">Trusted by 500+ teams</span>
+              </div>
+            </div>
+
+            {/* Right: Hero visual */}
+            <div className={`relative transition-all duration-700 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+              <GradientBorderCard className="h-full min-h-[400px]">
+                <div className="space-y-4">
+                  {/* Chat preview */}
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 h-6 w-6 rounded-md bg-white/10" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-3/4 rounded bg-white/10" />
+                      <div className="h-4 w-1/2 rounded bg-white/5" />
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 h-6 w-6 rounded-md bg-[#5e6ad2]" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-full rounded bg-[#5e6ad2]/20" />
+                      <div className="h-4 w-2/3 rounded bg-[#5e6ad2]/10" />
+                    </div>
+                  </div>
+                  {/* Tool call indicator */}
+                  <div className="ml-9 flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+                    <div className="h-3 w-3 rounded-sm bg-[#0fe7b3]" />
+                    <span className="text-[11px] text-white/40">searchFaq called</span>
+                  </div>
+                  {/* Input */}
+                  <div className="mt-4 flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2">
+                    <span className="text-[13px] text-white/30">Ask about this page...</span>
+                  </div>
+                </div>
+
+                {/* Floating elements */}
+                <div className="absolute -right-4 top-10 animate-float rounded-xl border border-white/[0.08] bg-[#0c0e12] p-3 shadow-2xl">
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 rounded bg-[#0fe7b3]" />
+                    <span className="text-[11px] text-white/60">Indexing complete</span>
+                  </div>
+                </div>
+                <div className="absolute -left-4 bottom-20 animate-float animate-stagger-2 rounded-xl border border-white/[0.08] bg-[#0c0e12] p-3 shadow-2xl">
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 rounded bg-[#5e6ad2]" />
+                    <span className="text-[11px] text-white/60">3 agents active</span>
+                  </div>
+                </div>
+              </GradientBorderCard>
+            </div>
+          </div>
         </div>
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.35]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(148,163,184,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.08) 1px, transparent 1px)",
-            backgroundSize: "120px 120px",
-          }}
-        />
 
-        <header className="relative">
-          <nav className="mx-auto flex max-w-[1200px] items-center justify-between px-6 py-6">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-2xl border border-emerald-500/30 bg-emerald-500/10" />
-              <div>
-                <p className="text-xs uppercase tracking-[0.32em] text-emerald-300">
-                  Agent Plugin Bar
-                </p>
-                <p className="text-sm font-semibold text-white">Docked agents for product teams</p>
-              </div>
-            </div>
-            <div className="hidden items-center gap-6 text-sm text-slate-300 lg:flex">
-              <a className="transition hover:text-white" href="#how">
-                Workflow
-              </a>
-              <a className="transition hover:text-white" href="#embed">
-                One-line embed
-              </a>
-              <a className="transition hover:text-white" href="#runtime">
-                Runtime
-              </a>
-              <a className="transition hover:text-white" href="#admin">
-                Admin
-              </a>
-            </div>
-            <div className="flex items-center gap-3">
-              <a
-                href="#embed"
-                className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-500/20 active:translate-y-[1px]"
-              >
-                Get snippet
-              </a>
-              <a
-                href="#admin"
-                className="rounded-full border border-slate-700 bg-white px-4 py-2 text-xs font-semibold text-slate-900 transition hover:bg-slate-100 active:translate-y-[1px]"
-              >
-                Open console
-              </a>
-            </div>
-          </nav>
-        </header>
-
-        <main className="relative mx-auto max-w-[1200px] px-6 pb-20 pt-12 lg:pt-16">
-          <div className="grid gap-16 lg:grid-cols-[1.05fr_0.95fr]">
-            <div className="space-y-8">
-              <div className="inline-flex items-center gap-3 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs text-emerald-200">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse-soft" />
-                Hosted settings are live
-              </div>
+        {/* Features section */}
+        <Section id="features" className="border-t border-white/[0.06] bg-[#0c0e12]/50">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr]">
               <div className="space-y-5">
-                <h1 className="text-4xl font-semibold tracking-tight text-white md:text-6xl">
-                  Launch a Linear-grade agent dock on any site.
-                </h1>
-                <p className="text-base leading-relaxed text-slate-300 max-w-[58ch]">
-                  Agent Plugin Bar ships a persistent assistant surface for support, onboarding,
-                  content, and analytics. A single script loads your hosted settings, then indexes
-                  page content to answer with streaming responses.
+                <p className="text-[12px] font-medium uppercase tracking-widest text-[#5e6ad2]">Features</p>
+                <h2 className="text-[32px] font-semibold text-white">The full end-state in one list.</h2>
+                <p className="text-[15px] leading-relaxed text-white/50">
+                  Every capability required for a production-grade assistant dock. Hosted config,
+                  safe tool calls, and an embed that stays short forever.
                 </p>
               </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <a
-                  href="#embed"
-                  className="rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-slate-950 shadow-[0_20px_50px_-35px_rgba(16,185,129,0.8)] transition hover:-translate-y-[1px] active:translate-y-[1px]"
-                >
-                  Copy one-line embed
-                </a>
-                <a
-                  href="#runtime"
-                  className="rounded-full border border-slate-700 bg-slate-900/60 px-6 py-3 text-sm font-semibold text-slate-200 transition hover:bg-slate-900 active:translate-y-[1px]"
-                >
-                  View runtime
-                </a>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-[1.1fr_0.9fr]">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900/60 px-5 py-4">
-                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Setup</p>
-                  <p className="mt-3 text-sm font-semibold text-white">One script, hosted settings</p>
-                  <p className="mt-2 text-xs text-slate-400">
-                    Adjust greeting, colors, and position from the dashboard without redeploying.
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-slate-800 bg-slate-900/60 px-5 py-4">
-                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Runtime</p>
-                  <p className="mt-3 text-sm font-semibold text-white">Typed tools only</p>
-                  <p className="mt-2 text-xs text-slate-400">
-                    Agents can call HostApi methods, never arbitrary network requests.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="relative space-y-6">
-              <div className="rounded-[28px] border border-slate-800 bg-slate-900/70 p-6 shadow-[0_45px_90px_-70px_rgba(15,23,42,0.7)]">
-                <div className="flex items-center justify-between text-xs text-slate-400">
-                  <span>Live dock preview</span>
-                  <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-[2px] text-[10px] text-emerald-200">
-                    Active
-                  </span>
-                </div>
-                <div className="mt-5 space-y-4">
-                  <div className="rounded-2xl border border-slate-800 bg-slate-950/60 px-4 py-3 text-xs text-slate-300">
-                    Ask: summarize the latest release notes.
-                  </div>
-                  <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-100">
-                    Pulled two notes from /changelog. Want a draft email?
-                  </div>
-                  <div className="rounded-2xl border border-slate-800 bg-slate-950/60 px-4 py-3 text-[11px] text-slate-400">
-                    Tool used: searchFaq
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-3">
-                <div className="animate-float-slow rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Runtime loop</p>
-                  <div className="mt-4 space-y-2 text-xs text-slate-400">
-                    <div className="flex items-center justify-between">
-                      <span>User message</span>
-                      <span className="text-emerald-200">Input</span>
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02]">
+                {[
+                  { title: "One-line embed", detail: "Hosted settings load by site key so the script tag stays minimal.", tag: "Embed" },
+                  { title: "Hosted dashboard", detail: "Edit greeting, colors, position, and suggestions without redeploying.", tag: "Admin" },
+                  { title: "CLI bootstrap", detail: "Register a site URL once and sync config immediately.", tag: "DX" },
+                  { title: "Auto-ingest crawl", detail: "Background indexing via sitemap and same-origin discovery.", tag: "Ingest" },
+                  { title: "Client snapshot", detail: "Captures rendered page text for SPAs and gated content.", tag: "Ingest" },
+                  { title: "Streaming responses", detail: "Token streaming from Groq for instant feedback.", tag: "AI" },
+                  { title: "Multi-site tenancy", detail: "Site keys isolate content across multiple domains.", tag: "Scale" },
+                  { title: "Typed tool calls", detail: "Agents call HostApi methods only, never arbitrary fetch.", tag: "Safety" },
+                  { title: "Agent plugins", detail: "Support, onboarding, and content agents included.", tag: "Core" },
+                  { title: "Custom agents", detail: "Bring your own system prompt, tools, and UI surface.", tag: "Core" },
+                  { title: "Dock placement", detail: "Left, right, or bottom placement with responsive behavior.", tag: "UX" },
+                  { title: "Theme controls", detail: "Accent, background, and text overrides for brand alignment.", tag: "UX" },
+                  { title: "Launcher badge", detail: "Optional badge for attention cues and status labels.", tag: "UX" },
+                  { title: "Draggable launcher", detail: "Drag and persist the dock position per site.", tag: "UX" },
+                  { title: "Session persistence", detail: "Store chat history locally by site key.", tag: "UX" },
+                  { title: "Transcript export", detail: "Copy chat logs for audits or handoffs.", tag: "Admin" },
+                  { title: "Minimize + reset", detail: "Compact the dock or clear the session in one tap.", tag: "UX" },
+                  { title: "Scroll helpers", detail: "Auto-scroll with manual controls for long sessions.", tag: "UX" },
+                  { title: "Status endpoint", detail: "Admin visibility into indexed pages and chunks.", tag: "Admin" },
+                  { title: "Safe fallback", detail: "Runs with local heuristics when no LLM is configured.", tag: "Reliability" },
+                  { title: "API schema docs", detail: "HostApi schema provides clear contracts for tools.", tag: "DX" },
+                  { title: "Vercel-ready", detail: "Serverless ingest, chat, config, and status endpoints.", tag: "Deploy" },
+                  { title: "Open source", detail: "MIT licensed runtime, widget, and CLI packages.", tag: "Open" },
+                ].map((feature, index) => (
+                  <div
+                    key={feature.title}
+                    className={`flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-start sm:justify-between ${
+                      index === 0 ? "" : "border-t border-white/[0.06]"
+                    }`}
+                  >
+                    <div>
+                      <p className="text-[14px] font-medium text-white">{feature.title}</p>
+                      <p className="mt-1 text-[13px] text-white/45">{feature.detail}</p>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span>Agent decision</span>
-                      <span className="text-emerald-200">Tool call</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Host response</span>
-                      <span className="text-emerald-200">Answer</span>
-                    </div>
+                    <span className="text-[11px] uppercase tracking-widest text-white/30">{feature.tag}</span>
                   </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        {/* How it works section */}
+        <Section id="how" className="border-t border-white/[0.06]">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
+              {/* Left: Description */}
+              <div>
+                <p className="mb-3 text-[12px] font-medium uppercase tracking-widest text-[#5e6ad2]">How it works</p>
+                <h2 className="mb-5 text-[32px] font-semibold text-white">From embed to answered in minutes</h2>
+                <p className="mb-8 text-[15px] leading-relaxed text-white/50">
+                  Host the assistant once, then drop a single line of code on any site. 
+                  The widget indexes page content for instant context.
+                </p>
+                <div className="space-y-3">
+                  {[
+                    { step: "01", title: "Initialize", description: "npm install and configure your first agent" },
+                    { step: "02", title: "Embed", description: "Add the script tag to your site" },
+                    { step: "03", title: "Deploy", description: "Ship and let users interact instantly" },
+                  ].map((item) => (
+                    <div key={item.step} className="flex items-center gap-4 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
+                      <span className="text-[12px] font-medium text-white/30">{item.step}</span>
+                      <div>
+                        <p className="text-[14px] font-medium text-white">{item.title}</p>
+                        <p className="text-[13px] text-white/40">{item.description}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="animate-float-slow rounded-2xl border border-slate-800 bg-slate-950/80 px-5 py-4 text-xs text-slate-200">
-                  <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400">Streaming</p>
-                  <p className="mt-3 text-sm font-semibold">
-                    Tokens render instantly in the dock, no refresh needed.
-                  </p>
+              </div>
+
+              {/* Right: Code */}
+              <div className="space-y-4">
+                <CodeBlock 
+                  label="Install" 
+                  code="npm install @arjun-shah/agentbar-react" 
+                />
+                <CodeBlock 
+                  label="Configure" 
+                  code={`<AgentBar
+  apiSchema={schema}
+  hostApi={api}
+  position="right"
+/>`}
+                />
+                <CodeBlock 
+                  label="Embed (optional)" 
+                  code={`<script src="..." 
+  data-site-key="your-key">
+</script>`}
+                />
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        {/* Runtime section */}
+        <Section className="border-t border-white/[0.06] bg-[#0c0e12]/50">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
+              {/* Left: Code */}
+              <div className="order-2 lg:order-1">
+                <CodeBlock 
+                  label="TypeScript" 
+                  code={`interface HostApi {
+  searchFaq(query: string): Promise<FAQ[]>;
+  createTicket(input: TicketInput): Promise<Ticket>;
+  // Define your own methods
+}`}
+                />
+              </div>
+
+              {/* Right: Description */}
+              <div className="order-1 lg:order-2">
+                <p className="mb-3 text-[12px] font-medium uppercase tracking-widest text-[#5e6ad2]">Type-safe runtime</p>
+                <h2 className="mb-5 text-[32px] font-semibold text-white">Tools your agents can call</h2>
+                <p className="mb-6 text-[15px] leading-relaxed text-white/50">
+                  Each agent gets a typed API to interact with your product. 
+                  Agents can only call the methods you explicitly expose.
+                </p>
+                <div className="space-y-3">
+                  <FeatureCard 
+                    title="Support Agent" 
+                    description="Answers questions using searchFaq and creates tickets."
+                  />
+                  <FeatureCard 
+                    title="Onboarding Agent" 
+                    description="Shows features and guides users through tutorials."
+                  />
+                  <FeatureCard 
+                    title="Content Agent" 
+                    description="Generates copy based on page context."
+                  />
                 </div>
               </div>
             </div>
           </div>
-        </main>
-      </div>
+        </Section>
 
-      <section id="proof" className="mx-auto max-w-[1200px] px-6 py-14">
-        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Trusted by</p>
-        <div className="mt-6 grid gap-4 text-sm text-slate-400 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-3">
-            Arcport Systems
-          </div>
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-3">
-            Fieldlane Compute
-          </div>
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-3">
-            Meridian Cloud Ops
-          </div>
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-3">
-            Tideway Labs
-          </div>
-        </div>
-      </section>
-
-      <section id="how" className="mx-auto max-w-[1200px] px-6 py-20">
-        <div className="grid gap-12 lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="space-y-6">
-            <p className="text-xs uppercase tracking-[0.3em] text-emerald-300">Workflow</p>
-            <h2 className="text-3xl font-semibold text-white">From embed to answered in minutes.</h2>
-            <p className="text-sm text-slate-300">
-              Host the assistant once, then drop a single line of code on any site. The widget
-              snapshots the current page for instant context and crawls the rest of your site in the
-              background.
-            </p>
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 text-xs text-slate-300">
-              <pre className="whitespace-pre-wrap">{cliSnippet}</pre>
-            </div>
-          </div>
-          <div className="space-y-4">
-            {[
-              {
-                title: "1. Register the site",
-                body: "Run the CLI once to sync your site URL and receive the hosted snippet.",
-              },
-              {
-                title: "2. Drop the embed",
-                body: "Paste one script tag and the dock appears on the page with your settings.",
-              },
-              {
-                title: "3. Update from the dashboard",
-                body: "Adjust greeting, tone, colors, and position without touching code.",
-              },
-            ].map((step, index) => (
-              <div
-                key={step.title}
-                className="animate-fade-up rounded-2xl border border-slate-800 bg-slate-900/60 px-5 py-4"
-                style={{ animationDelay: `${index * 120}ms` }}
-              >
-                <p className="text-sm font-semibold text-white">{step.title}</p>
-                <p className="mt-2 text-xs text-slate-400">{step.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="embed" className="mx-auto max-w-[1200px] px-6 pb-20">
-        <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="space-y-5">
-            <p className="text-xs uppercase tracking-[0.3em] text-emerald-300">One-line embed</p>
-            <h2 className="text-3xl font-semibold text-white">Keep the embed short. Store the rest.</h2>
-            <p className="text-sm text-slate-300">
-              Settings are pulled from the hosted dashboard. All you need is the script tag and your
-              site key.
-            </p>
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 text-xs text-slate-200">
-              <pre className="whitespace-pre-wrap">{embedSnippet}</pre>
-            </div>
-            <p className="text-xs text-slate-400">
-              Deploy this repo to Vercel, set GROQ_API_KEY, and the widget will auto-ingest your
-              content. Each site gets its own key for isolation.
-            </p>
-          </div>
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Quickstart</p>
-              <pre className="mt-3 whitespace-pre-wrap text-xs text-slate-200">{quickstart}</pre>
-            </div>
-            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-6 text-xs text-emerald-100">
-              <p className="text-[10px] uppercase tracking-[0.35em] text-emerald-200">Console</p>
-              <p className="mt-3 text-sm font-semibold">Edit settings in one place.</p>
-              <p className="mt-2 text-xs text-emerald-200/80">
-                Use the Admin dashboard below or the CLI to sync new defaults instantly.
+        {/* Admin / Dashboard section */}
+        <Section id="docs" className="border-t border-white/[0.06]">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="mb-12">
+              <p className="mb-3 text-[12px] font-medium uppercase tracking-widest text-[#5e6ad2]">Dashboard</p>
+              <h2 className="mb-5 text-[32px] font-semibold text-white">Configure from anywhere</h2>
+              <p className="max-w-xl text-[15px] leading-relaxed text-white/50">
+                Update greeting, colors, and position from the hosted dashboard. 
+                Changes take effect without code deploys.
               </p>
             </div>
-          </div>
-        </div>
-      </section>
 
-      <section id="runtime" className="mx-auto max-w-[1200px] px-6 pb-20">
-        <div className="grid gap-12 lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="space-y-5">
-            <p className="text-xs uppercase tracking-[0.3em] text-emerald-300">Runtime</p>
-            <h2 className="text-3xl font-semibold text-white">Typed tools, predictable calls.</h2>
-            <p className="text-sm text-slate-300">
-              Each agent gets a system prompt, tools, and UI surface. Tools can only call the HostApi
-              methods you provide.
-            </p>
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 text-xs text-slate-200">
-              <pre className="whitespace-pre-wrap">{hostApiSnippet}</pre>
-            </div>
-          </div>
-          <div className="grid gap-4">
-            {[
-              {
-                title: "Support Desk",
-                body: "Answers questions, runs searchFaq, logs createTicket.",
-              },
-              {
-                title: "Onboarding Guide",
-                body: "Shows listKeyFeatures and triggers openTutorial flows.",
-              },
-              {
-                title: "Content Studio",
-                body: "Reads getPageContext and suggests copy variants.",
-              },
-            ].map((agent, index) => (
-              <div
-                key={agent.title}
-                className="animate-fade-up rounded-2xl border border-slate-800 bg-slate-900/60 px-5 py-4"
-                style={{ animationDelay: `${index * 120}ms` }}
-              >
-                <p className="text-sm font-semibold text-white">{agent.title}</p>
-                <p className="mt-2 text-xs text-slate-400">{agent.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="admin" className="mx-auto max-w-[1200px] px-6 pb-24">
-        <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="space-y-6">
-            <p className="text-xs uppercase tracking-[0.3em] text-emerald-300">Admin</p>
-            <h2 className="text-3xl font-semibold text-white">Hosted dashboard for every site.</h2>
-            <p className="text-sm text-slate-300">
-              Save settings to the hosted config store and keep the embed snippet short. Changes take
-              effect without code deploys.
-            </p>
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="space-y-2 text-xs text-slate-400">
-                  <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">Site URL</span>
-                  <input
-                    value={configForm.siteUrl}
-                    onChange={(event) =>
-                      setConfigForm((prev) => ({ ...prev, siteUrl: event.target.value }))
-                    }
-                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none"
-                    placeholder="https://your-site.com"
-                  />
-                </label>
-                <label className="space-y-2 text-xs text-slate-400">
-                  <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">
-                    Theme color
-                  </span>
-                  <input
-                    value={configForm.themeColor}
-                    onChange={(event) =>
-                      setConfigForm((prev) => ({ ...prev, themeColor: event.target.value }))
-                    }
-                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none"
-                    placeholder="#0f766e"
-                  />
-                </label>
-                <label className="space-y-2 text-xs text-slate-400">
-                  <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">Position</span>
-                  <select
-                    value={configForm.position}
-                    onChange={(event) =>
-                      setConfigForm((prev) => ({ ...prev, position: event.target.value }))
-                    }
-                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none"
-                  >
-                    <option value="right">Right</option>
-                    <option value="left">Left</option>
-                    <option value="bottom">Bottom</option>
-                  </select>
-                </label>
-                <label className="space-y-2 text-xs text-slate-400">
-                  <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">Greeting</span>
-                  <input
-                    value={configForm.greeting}
-                    onChange={(event) =>
-                      setConfigForm((prev) => ({ ...prev, greeting: event.target.value }))
-                    }
-                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none"
-                    placeholder="Welcome back. How can I help?"
-                  />
-                </label>
-              </div>
-              <label className="mt-4 block space-y-2 text-xs text-slate-400">
-                <span className="uppercase tracking-[0.2em] text-[10px] text-slate-500">
-                  Suggestions (use | to separate)
-                </span>
-                <input
-                  value={configForm.suggestions}
-                  onChange={(event) =>
-                    setConfigForm((prev) => ({ ...prev, suggestions: event.target.value }))
-                  }
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none"
-                  placeholder="Search pricing | Explain a feature"
-                />
-              </label>
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={saveHostedConfig}
-                  className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs text-emerald-200 transition hover:bg-emerald-500/20 active:translate-y-[1px]"
-                >
-                  {configSaving ? "Saving..." : "Save settings"}
-                </button>
-                <button
-                  type="button"
-                  onClick={copyHostedSnippet}
-                  className="rounded-full border border-slate-700 bg-slate-950 px-4 py-2 text-xs text-slate-200 transition hover:bg-slate-900 active:translate-y-[1px]"
-                >
-                  Copy snippet
-                </button>
-                {configStatus ? <span className="text-xs text-slate-400">{configStatus}</span> : null}
-              </div>
-              <div className="mt-3 rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-xs text-slate-300">
-                <pre className="whitespace-pre-wrap">{hostedSnippet}</pre>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-5">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Indexing console</p>
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={loadStatus}
-                className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs text-emerald-200 transition hover:bg-emerald-500/20 active:translate-y-[1px]"
-              >
-                {statusLoading ? "Loading..." : "Load status"}
-              </button>
-              <button
-                type="button"
-                onClick={reindexCurrent}
-                className="rounded-full border border-slate-700 bg-slate-950 px-4 py-2 text-xs text-slate-200 transition hover:bg-slate-900 active:translate-y-[1px]"
-              >
-                Reindex current site
-              </button>
-            </div>
-            {statusError ? (
-              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-200">
-                {statusError}
-              </div>
-            ) : null}
-            <div className="space-y-3">
-              {statusLoading ? (
-                <div className="rounded-2xl border border-slate-800 bg-slate-900/60 px-5 py-4">
-                  <div className="h-3 w-24 rounded-full bg-slate-800 animate-pulse-soft" />
-                  <div className="mt-3 h-3 w-40 rounded-full bg-slate-800 animate-pulse-soft" />
-                  <div className="mt-4 h-2 w-full rounded-full bg-slate-900 animate-pulse-soft" />
-                  <div className="mt-2 h-2 w-5/6 rounded-full bg-slate-900 animate-pulse-soft" />
+            <div className="grid gap-8 lg:grid-cols-2">
+              {/* Config form */}
+              <GradientBorderCard>
+                <div className="mb-6">
+                  <h3 className="text-[15px] font-semibold text-white">Site configuration</h3>
+                  <p className="mt-1 text-[13px] text-white/40">Update settings for your site</p>
                 </div>
-              ) : statusItems.length === 0 ? (
-                <div className="rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-3 text-xs text-slate-400">
-                  No indexed sites yet. Click "Load status" to check again.
-                </div>
-              ) : (
-                statusItems.map((item) => (
-                  <div key={item.key} className="rounded-2xl border border-slate-800 bg-slate-900/60 px-5 py-4">
-                    <p className="text-xs font-semibold text-white">{item.key}</p>
-                    <p className="text-xs text-slate-400">{item.url}</p>
-                    <div className="mt-2 space-y-1 text-[11px] text-slate-400">
-                      {item.pages.slice(0, 4).map((page) => (
-                        <div key={page.url}>{page.title || page.url}</div>
-                      ))}
+                <div className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-medium uppercase tracking-wider text-white/40">Site URL</label>
+                      <input
+                        value={configForm.siteUrl}
+                        onChange={(e) => setConfigForm((prev) => ({ ...prev, siteUrl: e.target.value }))}
+                        className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-white placeholder:text-white/20 focus:border-[#5e6ad2] focus:outline-none"
+                        placeholder="https://your-site.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-medium uppercase tracking-wider text-white/40">Theme color</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={configForm.themeColor}
+                          onChange={(e) => setConfigForm((prev) => ({ ...prev, themeColor: e.target.value }))}
+                          className="h-9 w-9 rounded-lg border border-white/[0.08] bg-transparent"
+                        />
+                        <input
+                          value={configForm.themeColor}
+                          onChange={(e) => setConfigForm((prev) => ({ ...prev, themeColor: e.target.value }))}
+                          className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-white focus:border-[#5e6ad2] focus:outline-none"
+                          placeholder="#5e6ad2"
+                        />
+                      </div>
                     </div>
                   </div>
-                ))
-              )}
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-medium uppercase tracking-wider text-white/40">Greeting</label>
+                    <input
+                      value={configForm.greeting}
+                      onChange={(e) => setConfigForm((prev) => ({ ...prev, greeting: e.target.value }))}
+                      className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-white placeholder:text-white/20 focus:border-[#5e6ad2] focus:outline-none"
+                      placeholder="Welcome back. How can I help?"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    <ButtonPrimary onClick={saveHostedConfig}>
+                      {configSaving ? "Saving..." : "Save settings"}
+                    </ButtonPrimary>
+                    <ButtonSecondary onClick={copyHostedSnippet}>Copy snippet</ButtonSecondary>
+                  </div>
+                  {configStatus && <p className="text-[13px] text-white/40">{configStatus}</p>}
+                </div>
+              </GradientBorderCard>
+
+              {/* Indexing console */}
+              <div>
+                <div className="mb-6">
+                  <h3 className="text-[15px] font-semibold text-white">Indexing console</h3>
+                  <p className="mt-1 text-[13px] text-white/40">Monitor your site's content indexing</p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <ButtonSecondary onClick={loadStatus}>
+                    {statusLoading ? "Loading..." : "Load status"}
+                  </ButtonSecondary>
+                  <ButtonSecondary onClick={reindexCurrent}>Reindex site</ButtonSecondary>
+                </div>
+
+                {statusError && (
+                  <div className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-300">
+                    {statusError}
+                  </div>
+                )}
+
+                <div className="mt-4 space-y-3">
+                  {statusLoading ? (
+                    <div className="space-y-3">
+                      {[1, 2].map((i) => (
+                        <div key={i} className="animate-pulse rounded-lg border border-white/[0.08] bg-white/[0.02] p-4">
+                          <div className="h-4 w-32 rounded bg-white/10" />
+                          <div className="mt-2 h-3 w-48 rounded bg-white/5" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : statusItems.length === 0 ? (
+                    <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 text-[13px] text-white/40">
+                      No indexed sites yet. Click "Load status" to check.
+                    </div>
+                  ) : (
+                    statusItems.map((item) => (
+                      <div key={item.key} className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-4">
+                        <p className="text-[14px] font-medium text-white">{item.key}</p>
+                        <p className="mt-1 text-[12px] text-white/40">{item.url}</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {item.pages.slice(0, 3).map((page, i) => (
+                            <span key={i} className="rounded bg-white/[0.05] px-2 py-1 text-[11px] text-white/30">
+                              {page.title || page.url}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </Section>
 
-      <footer className="border-t border-slate-900/80 bg-slate-950">
-        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 px-6 py-8 text-xs text-slate-500">
-          <p>Agent Plugin Bar. Hosted assistants for modern product teams.</p>
-          <div className="flex items-center gap-4">
-            <a className="transition hover:text-slate-200" href="#embed">
-              Embed
-            </a>
-            <a className="transition hover:text-slate-200" href="#runtime">
-              Runtime
-            </a>
-            <a className="transition hover:text-slate-200" href="#admin">
-              Admin
-            </a>
+        {/* CTA section */}
+        <Section className="border-t border-white/[0.06] bg-gradient-to-b from-transparent to-[#5e6ad2]/5">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="mb-4 text-[36px] font-semibold text-white">Ready to ship?</h2>
+            <p className="mb-8 text-[16px] text-white/50">
+              Start building your product assistant today. No credit card required.
+            </p>
+            <div className="flex justify-center gap-4">
+              <ButtonPrimary>Get started free</ButtonPrimary>
+              <ButtonSecondary>Talk to sales</ButtonSecondary>
+            </div>
           </div>
-        </div>
-      </footer>
+        </Section>
 
+        {/* Footer */}
+        <footer className="border-t border-white/[0.06] bg-[#0c0e12]">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8">
+            <div className="flex items-center gap-3">
+              <Logo className="scale-75" />
+              <span className="text-[13px] text-white/40">Agent Plugin Bar</span>
+            </div>
+            <div className="flex items-center gap-6 text-[13px] text-white/40">
+              <a href="#" className="transition-colors hover:text-white">GitHub</a>
+              <a href="#" className="transition-colors hover:text-white">Twitter</a>
+              <a href="#" className="transition-colors hover:text-white">Discord</a>
+            </div>
+            <p className="text-[12px] text-white/30">© 2024 All rights reserved.</p>
+          </div>
+        </footer>
+      </main>
+
+      {/* Agent Bar widget */}
       <AgentBar
         apiSchema={apiSchema}
         hostApi={hostApi}
@@ -732,20 +739,20 @@ export default function App() {
         position="right"
         llmProvider={llmProvider}
         theme={{
-          accent: "#0f766e",
-          background: "rgba(15,23,42,0.96)",
-          text: "#e2e8f0",
-          muted: "#94a3b8",
-          border: "rgba(51,65,85,0.8)",
-          panelRadius: "20px",
-          dockRadius: "18px",
-          fontFamily: "Geist, Satoshi, ui-sans-serif",
-          userBubbleBackground: "rgba(16,185,129,0.15)",
-          userBubbleText: "#e2e8f0",
-          assistantBubbleBackground: "rgba(15,23,42,0.95)",
-          assistantBubbleText: "#e2e8f0",
-          panelShadow: "0 30px 70px -50px rgba(15,23,42,0.6)",
-          dockShadow: "0 20px 50px -40px rgba(15,23,42,0.5)",
+          accent: "#5e6ad2",
+          background: "rgba(12, 14, 18, 0.96)",
+          text: "#f7f8f8",
+          muted: "#8a8f98",
+          border: "rgba(255,255,255,0.08)",
+          panelRadius: "16px",
+          dockRadius: "14px",
+          fontFamily: "Inter Variable, Inter, ui-sans-serif",
+          userBubbleBackground: "rgba(94, 106, 210, 0.15)",
+          userBubbleText: "#f7f8f8",
+          assistantBubbleBackground: "rgba(19, 22, 27, 0.95)",
+          assistantBubbleText: "#f7f8f8",
+          panelShadow: "0 25px 60px -40px rgba(0, 0, 0, 0.6)",
+          dockShadow: "0 15px 40px -30px rgba(0, 0, 0, 0.5)",
         }}
         inputPlaceholder="Ask about this page"
         suggestions={["Search pricing", "Summarize docs", "Draft marketing copy"]}
