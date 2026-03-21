@@ -1,6 +1,6 @@
 {
   "name": "@arjun-shah/agentbar-cli",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "type": "module",
   "description": "Agent Plugin Bar CLI helper.",
   "bin": {

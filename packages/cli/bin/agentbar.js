@@ -1,12 +1,15 @@
 #!/usr/bin/env node
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import readline from "node:readline";
 import process from "node:process";
+import readline from "node:readline";
 
 const CONFIG_FILE = "agentbar.config.json";
 const DEFAULT_CONFIG = {
   apiBase: "https://agent-pug.vercel.app",
+  authToken: "",
+  accountEmail: "",
   siteUrl: "",
   siteKey: "",
   depth: 1,
@@ -90,26 +93,6 @@ const saveConfig = (config) => {
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 };
 
-const syncConfig = async (config) => {
-  const apiBase = (config.apiBase || DEFAULT_CONFIG.apiBase).replace(/\/$/, "");
-  const siteKey = resolveSiteKey(config);
-  if (!siteKey) {
-    return;
-  }
-  try {
-    await fetch(`${apiBase}/api/config`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        siteKey,
-        config: { ...config, siteKey },
-      }),
-    });
-  } catch (_error) {
-    console.warn("Could not sync settings to the hosted dashboard.");
-  }
-};
-
 const normalizeUrl = (value) => {
   if (!value || typeof value !== "string") {
     return "";
@@ -139,15 +122,72 @@ const resolveSiteKey = (config) => {
   }
 };
 
+const authHeaders = (config) =>
+  config.authToken
+    ? {
+        Authorization: `Bearer ${config.authToken}`,
+      }
+    : {};
+
 const renderSnippet = (config) => {
   const apiBase = (config.apiBase || DEFAULT_CONFIG.apiBase).replace(/\/$/, "");
   const siteKey = resolveSiteKey(config) || "your-site-key";
   return `<script src="${apiBase}/agentbar.js" data-site-key="${siteKey}"></script>`;
 };
 
+const openBrowser = (url) => {
+  try {
+    if (process.platform === "darwin") {
+      spawn("open", [url], { stdio: "ignore", detached: true }).unref();
+      return true;
+    }
+    if (process.platform === "win32") {
+      spawn("cmd", ["/c", "start", "", url], { stdio: "ignore", detached: true }).unref();
+      return true;
+    }
+    if (process.platform === "linux") {
+      spawn("xdg-open", [url], { stdio: "ignore", detached: true }).unref();
+      return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+};
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const syncConfig = async (config) => {
+  const apiBase = (config.apiBase || DEFAULT_CONFIG.apiBase).replace(/\/$/, "");
+  const siteKey = resolveSiteKey(config);
+  if (!siteKey || !config.authToken) {
+    return;
+  }
+  try {
+    const response = await fetch(`${apiBase}/api/config`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(config),
+      },
+      body: JSON.stringify({
+        siteKey,
+        config: { ...config, siteKey },
+      }),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data?.error || "Could not sync hosted settings.");
+    }
+  } catch (_error) {
+    console.warn("Could not sync settings to the hosted dashboard.");
+  }
+};
+
 const printHelp = () => {
   console.log("Agent Plugin Bar CLI\n");
   console.log("Commands:");
+  console.log("  agentbar login          Open the web login flow and save an auth token");
   console.log("  agentbar init           Interactive setup and snippet output");
   console.log("  agentbar snippet        Print current embed snippet");
   console.log("  agentbar set <key> <v>  Update config value");
@@ -156,7 +196,7 @@ const printHelp = () => {
   console.log("  agentbar help           Show help\n");
   console.log("Config keys:");
   console.log(
-    "  siteUrl, apiBase, depth, maxPages, siteKey, themeColor, position, title, subtitle,"
+    "  siteUrl, apiBase, authToken, accountEmail, depth, maxPages, siteKey, themeColor, position, title, subtitle,"
   );
   console.log(
     "  buttonLabel, fontFamily, panelBackground, textColor, mutedTextColor, borderColor,"
@@ -198,8 +238,60 @@ const ask = (rl, prompt, fallback) =>
     });
   });
 
+const login = async (existingConfig = loadConfig()) => {
+  const config = { ...existingConfig };
+  const apiBase = (config.apiBase || DEFAULT_CONFIG.apiBase).replace(/\/$/, "");
+
+  const response = await fetch(`${apiBase}/api/auth/device/start`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || "Failed to start login.");
+  }
+
+  console.log(`User code: ${data.userCode}`);
+  console.log(`Verification URL: ${data.verificationUrl}`);
+  if (!openBrowser(data.verificationUrl)) {
+    console.log("Open that URL in your browser to continue.");
+  }
+  console.log("Waiting for approval...\n");
+
+  const intervalMs = Math.max(1000, Number(data.interval || 2) * 1000);
+  const expiresAt = Number(data.expiresAt || 0);
+
+  while (!expiresAt || Date.now() < expiresAt) {
+    await sleep(intervalMs);
+    const pollResponse = await fetch(`${apiBase}/api/auth/device/poll`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deviceCode: data.deviceCode }),
+    });
+    const pollData = await pollResponse.json().catch(() => ({}));
+    if (!pollResponse.ok) {
+      throw new Error(pollData?.error || "Login polling failed.");
+    }
+    if (!pollData.approved) {
+      continue;
+    }
+    config.authToken = pollData.accessToken || "";
+    config.accountEmail = pollData.user?.email || "";
+    saveConfig(config);
+    console.log(`Logged in as ${config.accountEmail || "your account"}.`);
+    return config;
+  }
+
+  throw new Error("Login request expired before approval.");
+};
+
 const init = async () => {
-  const config = loadConfig();
+  let config = loadConfig();
+  if (!config.authToken) {
+    console.log("No saved login found. Opening the web login flow...\n");
+    config = await login(config);
+  }
+
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -234,8 +326,15 @@ const printStats = async () => {
     process.exit(1);
   }
 
+  if (!config.authToken) {
+    console.error("Missing auth token. Run `agentbar login` first.");
+    process.exit(1);
+  }
+
   try {
-    const response = await fetch(`${apiBase}/api/status`);
+    const response = await fetch(`${apiBase}/api/status`, {
+      headers: authHeaders(config),
+    });
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
       throw new Error(data?.error || `Status request failed (${response.status})`);
@@ -245,7 +344,7 @@ const printStats = async () => {
     const matched = items.filter((item) => item.key === siteKey);
     if (!matched.length) {
       console.log("No indexed content found for", siteKey);
-      console.log("Send a message in the widget to trigger ingest.");
+      console.log("Save the site config and run reindex from the console first.");
       return;
     }
     matched.forEach((item) => {
@@ -283,7 +382,7 @@ const setValue = async (key, value) => {
       process.exit(1);
     }
     config[key] = parsed;
-  } else if (key === "offsetX" || key === "offsetY") {
+  } else if (key === "offsetX" || key === "offsetY" || key === "dragOffset") {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) {
       console.error(`${key} must be a number.`);
@@ -307,13 +406,6 @@ const setValue = async (key, value) => {
     key === "autoScroll"
   ) {
     config[key] = value === "true" || value === true;
-  } else if (key === "dragOffset") {
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed)) {
-      console.error(`${key} must be a number.`);
-      process.exit(1);
-    }
-    config[key] = parsed;
   } else if (key === "suggestions") {
     config[key] = String(value)
       .split(/[|,]/)
@@ -335,6 +427,9 @@ const main = async () => {
   const [command, arg1, arg2] = process.argv.slice(2);
 
   switch (command) {
+    case "login":
+      await login();
+      return;
     case "init":
       await init();
       return;
@@ -364,4 +459,7 @@ const main = async () => {
   }
 };
 
-main();
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : "Unknown error");
+  process.exit(1);
+});

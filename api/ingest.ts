@@ -1,28 +1,10 @@
-type DocPage = {
-  url: string;
-  title: string;
-  wordCount: number;
-};
-
-type DocStore = {
-  url: string;
-  chunks: string[];
-  pages: DocPage[];
-  updatedAt: number;
-};
-
-declare global {
-  // eslint-disable-next-line no-var
-  var __agentbarStore: Map<string, DocStore> | undefined;
-}
-
-const store = globalThis.__agentbarStore ?? new Map<string, DocStore>();
-globalThis.__agentbarStore = store;
+import type { DocPage } from "./_lib/db";
+import { loadDatabase, normalizeUrl, resolveSiteKey, saveDatabase } from "./_lib/db";
 
 const setCors = (res: any) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 };
 
 const extractTitle = (html: string) => {
@@ -30,8 +12,8 @@ const extractTitle = (html: string) => {
   return match?.[1]?.trim() ?? "";
 };
 
-const stripHtml = (html: string) => {
-  return html
+const stripHtml = (html: string) =>
+  html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<[^>]+>/g, " ")
@@ -41,7 +23,6 @@ const stripHtml = (html: string) => {
     .replace(/&apos;/g, "'")
     .replace(/\s+/g, " ")
     .trim();
-};
 
 const chunkText = (text: string, wordsPerChunk = 160) => {
   const words = text.split(/\s+/);
@@ -78,9 +59,8 @@ const extractLinks = (html: string, baseUrl: string) => {
       continue;
     }
     try {
-      const resolved = new URL(raw, baseUrl).toString();
-      links.push(resolved);
-    } catch (_error) {
+      links.push(new URL(raw, baseUrl).toString());
+    } catch {
       // Ignore invalid URLs.
     }
     match = regex.exec(html);
@@ -92,8 +72,7 @@ const parseRobots = (robotsTxt: string) => {
   const disallows: string[] = [];
   let allowAll = true;
   let applies = false;
-  const lines = robotsTxt.split(/\r?\n/);
-  lines.forEach((line) => {
+  robotsTxt.split(/\r?\n/).forEach((line) => {
     const cleaned = line.split("#")[0].trim();
     if (!cleaned) {
       return;
@@ -121,20 +100,11 @@ const isAllowedByRobots = (url: string, disallows: string[], allowAll: boolean) 
   if (allowAll) {
     return true;
   }
-  const path = new URL(url).pathname;
-  return !disallows.some((rule) => (rule === "/" ? true : path.startsWith(rule)));
+  const pathname = new URL(url).pathname;
+  return !disallows.some((rule) => (rule === "/" ? true : pathname.startsWith(rule)));
 };
 
-const isHtmlResponse = (contentType: string | null) =>
-  contentType ? contentType.includes("text/html") : true;
-
-const normalizeUrl = (raw: string) => {
-  try {
-    return new URL(raw).toString();
-  } catch (_error) {
-    return new URL(`https://${raw}`).toString();
-  }
-};
+const isHtmlResponse = (contentType: string | null) => (contentType ? contentType.includes("text/html") : true);
 
 export default async function handler(req: any, res: any) {
   setCors(res);
@@ -166,27 +136,25 @@ export default async function handler(req: any, res: any) {
     const depthLimit = Number.isFinite(depth) ? Math.max(0, Number(depth)) : 1;
     const maxLimit = Number.isFinite(maxPages) ? Math.max(1, Number(maxPages)) : 15;
     const cacheKey =
-      siteKey && typeof siteKey === "string"
+      typeof siteKey === "string" && siteKey
         ? siteKey
-        : normalizedUrl
-          ? new URL(normalizedUrl).hostname
-          : "";
+        : resolveSiteKey(undefined, normalizedUrl || pageUrl || "");
 
     if (!cacheKey) {
       res.status(400).json({ error: "Missing site key" });
       return;
     }
 
-    const existing = !force ? store.get(cacheKey) : undefined;
+    const db = await loadDatabase();
+    const existing = !force ? db.docs.find((entry) => entry.siteKey === cacheKey) : undefined;
+    const ownerSite = db.sites.find((entry) => entry.siteKey === cacheKey);
     const pages: DocPage[] = existing?.pages ? [...existing.pages] : [];
     const chunks: string[] = existing?.chunks ? [...existing.chunks] : [];
 
     if (hasSnapshot) {
       const cleaned = String(pageText).replace(/\s+/g, " ").trim();
       if (cleaned) {
-        const snapshotUrl = pageUrl
-          ? normalizeUrl(pageUrl)
-          : normalizedUrl || `${cacheKey}`;
+        const snapshotUrl = pageUrl ? normalizeUrl(pageUrl) : normalizedUrl || cacheKey;
         if (!pages.some((page) => page.url === snapshotUrl)) {
           pages.unshift({
             url: snapshotUrl,
@@ -194,62 +162,67 @@ export default async function handler(req: any, res: any) {
             wordCount: cleaned.split(/\s+/).length,
           });
         }
-        const snapshotChunks = chunkText(cleaned, 140).slice(0, 20);
-        chunks.unshift(...snapshotChunks);
+        chunks.unshift(...chunkText(cleaned, 140).slice(0, 20));
       }
     }
 
     if (!normalizedUrl) {
-      store.set(cacheKey, {
-        url: pageUrl ? normalizeUrl(pageUrl) : cacheKey,
-        chunks: chunks.slice(0, 220),
-        pages,
-        updatedAt: Date.now(),
-      });
+      const target = db.docs.find((entry) => entry.siteKey === cacheKey);
+      if (target) {
+        target.url = pageUrl ? normalizeUrl(pageUrl) : cacheKey;
+        target.pages = pages;
+        target.chunks = chunks.slice(0, 220);
+        target.updatedAt = Date.now();
+        target.ownerUserId = target.ownerUserId || ownerSite?.ownerUserId;
+      } else {
+        db.docs.push({
+          siteKey: cacheKey,
+          ownerUserId: ownerSite?.ownerUserId,
+          url: pageUrl ? normalizeUrl(pageUrl) : cacheKey,
+          chunks: chunks.slice(0, 220),
+          pages,
+          updatedAt: Date.now(),
+        });
+      }
+      await saveDatabase(db);
       res.status(200).json({ ok: true, pages: pages.length, chunks: chunks.length });
       return;
     }
 
-    if (!force && store.has(cacheKey) && !hasSnapshot) {
-      const cached = store.get(cacheKey);
-      res.status(200).json({ ok: true, cached: true, pages: cached?.pages?.length ?? 0 });
+    if (!force && existing && !hasSnapshot) {
+      res.status(200).json({ ok: true, cached: true, pages: existing.pages.length });
       return;
     }
 
     const urls: string[] = [];
     const visited = new Set<string>();
     const queue: Array<{ url: string; depth: number }> = [{ url: normalizedUrl, depth: 0 }];
-
     const sitemapUrl = new URL("/sitemap.xml", normalizedUrl).toString();
     let robots = { disallows: [] as string[], allowAll: true };
 
     try {
       const robotsResponse = await fetch(new URL("/robots.txt", normalizedUrl).toString(), {
-        headers: {
-          "User-Agent": "AgentPluginBar/1.0",
-        },
+        headers: { "User-Agent": "AgentPluginBar/1.0" },
       });
       if (robotsResponse.ok) {
         robots = parseRobots(await robotsResponse.text());
       }
-    } catch (_error) {
+    } catch {
       // Ignore robots failures.
     }
 
     try {
       const sitemapResponse = await fetch(sitemapUrl, {
-        headers: {
-          "User-Agent": "AgentPluginBar/1.0",
-        },
+        headers: { "User-Agent": "AgentPluginBar/1.0" },
       });
       if (sitemapResponse.ok) {
-        const sitemapXml = await sitemapResponse.text();
-        const sitemapUrls = extractSitemapUrls(sitemapXml).slice(0, maxLimit);
-        sitemapUrls.forEach((entry) => {
-          queue.push({ url: entry, depth: 0 });
-        });
+        extractSitemapUrls(await sitemapResponse.text())
+          .slice(0, maxLimit)
+          .forEach((entry) => {
+            queue.push({ url: entry, depth: 0 });
+          });
       }
-    } catch (_error) {
+    } catch {
       // Ignore sitemap failures.
     }
 
@@ -258,40 +231,21 @@ export default async function handler(req: any, res: any) {
 
     while (queue.length && urls.length < maxLimit) {
       const next = queue.shift();
-      if (!next) {
-        break;
-      }
-      if (next.depth > depthLimit) {
-        continue;
-      }
-      if (visited.has(next.url)) {
-        continue;
-      }
-      if (!next.url.startsWith(origin)) {
+      if (!next || next.depth > depthLimit || visited.has(next.url) || !next.url.startsWith(origin)) {
         continue;
       }
       if (!isAllowedByRobots(next.url, robots.disallows, robots.allowAll)) {
         continue;
       }
-
       visited.add(next.url);
 
       let response: Response | null = null;
       try {
-        response = await fetch(next.url, {
-          headers: {
-            "User-Agent": "AgentPluginBar/1.0",
-          },
-        });
-      } catch (_error) {
+        response = await fetch(next.url, { headers: { "User-Agent": "AgentPluginBar/1.0" } });
+      } catch {
         continue;
       }
-
-      if (!response.ok) {
-        continue;
-      }
-
-      if (!isHtmlResponse(response.headers.get("content-type"))) {
+      if (!response.ok || !isHtmlResponse(response.headers.get("content-type"))) {
         continue;
       }
 
@@ -316,17 +270,28 @@ export default async function handler(req: any, res: any) {
       }
     }
 
-    const combinedText = texts.join(" ");
-    const crawledChunks = chunkText(combinedText).slice(0, 200);
-    const mergedChunks = [...chunks, ...crawledChunks].slice(0, 280);
+    const mergedChunks = [...chunks, ...chunkText(texts.join(" ")).slice(0, 200)].slice(0, 280);
+    const now = Date.now();
+    const target = db.docs.find((entry) => entry.siteKey === cacheKey);
 
-    store.set(cacheKey, {
-      url: normalizedUrl,
-      chunks: mergedChunks,
-      pages,
-      updatedAt: Date.now(),
-    });
+    if (target) {
+      target.url = normalizedUrl;
+      target.pages = pages;
+      target.chunks = mergedChunks;
+      target.updatedAt = now;
+      target.ownerUserId = target.ownerUserId || ownerSite?.ownerUserId;
+    } else {
+      db.docs.push({
+        siteKey: cacheKey,
+        ownerUserId: ownerSite?.ownerUserId,
+        url: normalizedUrl,
+        pages,
+        chunks: mergedChunks,
+        updatedAt: now,
+      });
+    }
 
+    await saveDatabase(db);
     res.status(200).json({ ok: true, chunks: mergedChunks.length, pages: pages.length });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

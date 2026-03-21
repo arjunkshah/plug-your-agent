@@ -142,7 +142,7 @@ export const AgentBar: React.FC<AgentBarProps> = ({
   const [activeAgentId, setActiveAgentId] = useState<string | null>(
     enabledPlugins[0]?.id ?? null
   );
-  const [isOpen, setIsOpen] = useState(openOnLoad ?? enabledPlugins.length > 0);
+  const [isOpen, setIsOpen] = useState(openOnLoad ?? false);
   const [messages, setMessages] = useState<AgentState>({});
   const [status, setStatus] = useState<AgentStatus>({});
   const [inputs, setInputs] = useState<Record<string, string>>({});

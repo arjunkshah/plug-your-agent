@@ -1,4 +1,4 @@
-import { requireUser } from "./_lib/auth";
+import { getAuthUser } from "../_lib/auth";
 
 const setCors = (res: any) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -12,32 +12,23 @@ export default async function handler(req: any, res: any) {
     res.status(200).end();
     return;
   }
-
   if (req.method !== "GET") {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
 
-  const auth = await requireUser(req, res);
-  if (!auth) {
+  const { user } = await getAuthUser(req);
+  if (!user) {
+    res.status(200).json({ ok: true, user: null });
     return;
   }
 
-  const { db, user } = auth;
-  const ownedKeys = new Set(db.sites.filter((site) => site.ownerUserId === user.id).map((site) => site.siteKey));
-
-  const items = db.docs
-    .filter((value) => ownedKeys.has(value.siteKey))
-    .map((value) => ({
-      key: value.siteKey,
-      url: value.url,
-      pages: value.pages,
-      chunkCount: value.chunks.length,
-      updatedAt: value.updatedAt,
-    }));
-
   res.status(200).json({
     ok: true,
-    items,
+    user: {
+      id: user.id,
+      email: user.email,
+      createdAt: user.createdAt,
+    },
   });
 }

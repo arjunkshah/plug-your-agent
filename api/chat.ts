@@ -1,23 +1,4 @@
-type DocPage = {
-  url: string;
-  title: string;
-  wordCount: number;
-};
-
-type DocStore = {
-  url: string;
-  chunks: string[];
-  pages: DocPage[];
-  updatedAt: number;
-};
-
-declare global {
-  // eslint-disable-next-line no-var
-  var __agentbarStore: Map<string, DocStore> | undefined;
-}
-
-const store = globalThis.__agentbarStore ?? new Map<string, DocStore>();
-globalThis.__agentbarStore = store;
+import { loadDatabase, normalizeUrl } from "./_lib/db";
 
 const setCors = (res: any) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -25,13 +6,12 @@ const setCors = (res: any) => {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 };
 
-const extractTerms = (text: string) => {
-  return text
+const extractTerms = (text: string) =>
+  text
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)
     .filter((term) => term.length > 2);
-};
 
 const scoreChunk = (chunk: string, terms: string[]) => {
   const haystack = chunk.toLowerCase();
@@ -44,24 +24,14 @@ const scoreChunk = (chunk: string, terms: string[]) => {
   return score;
 };
 
-const buildContext = (chunks: string[], question: string) => {
-  const terms = extractTerms(question);
-  const ranked = chunks
-    .map((chunk) => ({ chunk, score: scoreChunk(chunk, terms) }))
+const buildContext = (chunks: string[], question: string) =>
+  chunks
+    .map((chunk) => ({ chunk, score: scoreChunk(chunk, extractTerms(question)) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 4)
-    .map((item) => item.chunk);
-
-  return ranked.join("\n\n---\n\n").slice(0, 4000);
-};
-
-const normalizeUrl = (raw: string) => {
-  try {
-    return new URL(raw).toString();
-  } catch (_error) {
-    return new URL(`https://${raw}`).toString();
-  }
-};
+    .map((item) => item.chunk)
+    .join("\n\n---\n\n")
+    .slice(0, 4000);
 
 export default async function handler(req: any, res: any) {
   setCors(res);
@@ -99,19 +69,20 @@ export default async function handler(req: any, res: any) {
   const normalizedSiteUrl = normalizeUrl(siteUrl);
   const key =
     siteKey && typeof siteKey === "string" ? siteKey : new URL(normalizedSiteUrl).hostname;
-  const docStore = store.get(key);
+  const db = await loadDatabase();
+  const docStore = db.docs.find((entry) => entry.siteKey === key);
   const context = docStore ? buildContext(docStore.chunks, userMessage) : "";
-
-  const systemPrompt =
-    "You are a website assistant. Use the provided context to answer. " +
-    "If the answer is not in the context, say you could not find it on the site.";
 
   const payload = {
     model: process.env.GROQ_MODEL || "llama-3.1-8b-instant",
     temperature: 0.3,
     stream: Boolean(stream),
     messages: [
-      { role: "system", content: systemPrompt },
+      {
+        role: "system",
+        content:
+          "You are a website assistant. Use the provided context to answer. If the answer is not in the context, say you could not find it on the site.",
+      },
       { role: "system", content: `Context:\n${context || "No context available."}` },
       ...(Array.isArray(messages) ? messages : []),
     ],
@@ -128,8 +99,7 @@ export default async function handler(req: any, res: any) {
     });
 
     if (!response.ok) {
-      const detail = await response.text();
-      res.status(500).json({ error: `Groq error: ${detail}` });
+      res.status(500).json({ error: `Groq error: ${await response.text()}` });
       return;
     }
 
@@ -158,10 +128,10 @@ export default async function handler(req: any, res: any) {
         const lines = buffer.split("\n");
         buffer = lines.pop() || "";
 
-        lines.forEach((line) => {
+        for (const line of lines) {
           const trimmed = line.trim();
           if (!trimmed.startsWith("data:")) {
-            return;
+            continue;
           }
           const data = trimmed.replace(/^data:\s*/, "");
           if (data === "[DONE]") {
@@ -177,10 +147,10 @@ export default async function handler(req: any, res: any) {
             if (token) {
               res.write(`data: ${JSON.stringify({ token })}\n\n`);
             }
-          } catch (_error) {
+          } catch {
             // Ignore parse errors.
           }
-        });
+        }
       }
 
       res.write("data: [DONE]\n\n");
@@ -192,10 +162,8 @@ export default async function handler(req: any, res: any) {
       choices?: Array<{ message?: { content?: string } }>;
     };
 
-    const content = data.choices?.[0]?.message?.content?.trim() ?? "";
-    res.status(200).json({ content });
+    res.status(200).json({ content: data.choices?.[0]?.message?.content?.trim() ?? "" });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    res.status(500).json({ error: message });
+    res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
   }
 }

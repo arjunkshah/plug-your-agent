@@ -1,14 +1,18 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowUpRight,
   ChartLineUp,
   Command,
+  Gear,
   Pulse,
   ShieldCheck,
+  SignIn,
+  SignOut,
   Sparkle,
   SquaresFour,
   TerminalWindow,
+  X,
 } from "@phosphor-icons/react";
 import { AgentBar } from "@arjun-shah/agentbar-react";
 import { createProxyProvider } from "@arjun-shah/agentbar-runtime";
@@ -43,8 +47,8 @@ const systemRows = [
   {
     icon: SquaresFour,
     label: "hosted tuning",
-    body: "greeting, suggestions, dock side, and color can change centrally instead of getting frozen into the build.",
-    note: "single control plane",
+    body: "greeting, suggestions, dock side, and color are saved centrally and can be managed across multiple sites under one account.",
+    note: "shared control plane",
   },
   {
     icon: ChartLineUp,
@@ -67,6 +71,56 @@ type ActionButtonProps = {
   onClick?: () => void;
   tone?: "solid" | "soft";
   className?: string;
+};
+
+type SessionUser = {
+  id: string;
+  email: string;
+  createdAt: number;
+};
+
+type ManagedSite = {
+  siteKey: string;
+  siteUrl: string;
+  updatedAt: number;
+  config: Record<string, unknown>;
+  pageCount: number;
+  chunkCount: number;
+};
+
+type ConfigFormState = {
+  siteUrl: string;
+  themeColor: string;
+  position: string;
+  greeting: string;
+  suggestions: string;
+};
+
+const createDefaultConfig = (siteUrl: string): ConfigFormState => ({
+  siteUrl,
+  themeColor: "#2f6b5a",
+  position: "right",
+  greeting: "welcome back. what can i help with?",
+  suggestions: "search docs | explain a feature | draft homepage copy",
+});
+
+const toConfigForm = (site: ManagedSite | null, fallbackUrl: string): ConfigFormState => {
+  const source = site?.config ?? {};
+  return {
+    siteUrl: typeof source.siteUrl === "string" ? source.siteUrl : site?.siteUrl ?? fallbackUrl,
+    themeColor: typeof source.themeColor === "string" ? source.themeColor : "#2f6b5a",
+    position: typeof source.position === "string" ? source.position : "right",
+    greeting:
+      typeof source.greeting === "string"
+        ? source.greeting
+        : "welcome back. what can i help with?",
+    suggestions:
+      Array.isArray(source.suggestions) && source.suggestions.length
+        ? source.suggestions.join(" | ")
+        : typeof source.suggestions === "string"
+          ? source.suggestions
+          : "search docs | explain a feature | draft homepage copy",
+  };
 };
 
 const LogoMark = ({ className = "" }: { className?: string }) => (
@@ -190,10 +244,10 @@ const ProductStage = ({ accentColor }: { accentColor: string }) => {
                 </div>
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm lowercase text-stone-900">theme stays in sync</p>
-                    <p className="mt-1 text-sm leading-7 text-stone-500">greeting, color, and dock side update centrally</p>
+                    <p className="text-sm lowercase text-stone-900">dashboard + auth</p>
+                    <p className="mt-1 text-sm leading-7 text-stone-500">saved sites, sessions, cli login, and hosted settings</p>
                   </div>
-                  <SquaresFour className="mt-1 h-4 w-4 text-[rgb(var(--accent))]" weight="regular" />
+                  <Gear className="mt-1 h-4 w-4 text-[rgb(var(--accent))]" weight="regular" />
                 </div>
               </div>
             </div>
@@ -241,14 +295,314 @@ const ProductStage = ({ accentColor }: { accentColor: string }) => {
 };
 
 export default function App() {
+  const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
+  const initialSearch = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+
+  const [consoleOpen, setConsoleOpen] = useState(
+    initialSearch?.get("console") === "1" || initialSearch?.has("deviceCode") || false
+  );
+  const [deviceCode, setDeviceCode] = useState(initialSearch?.get("deviceCode") || "");
+  const [configForm, setConfigForm] = useState<ConfigFormState>(() => createDefaultConfig(currentOrigin));
+  const [configSaving, setConfigSaving] = useState(false);
+  const [configStatus, setConfigStatus] = useState<{ tone: "success" | "error"; message: string } | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const [user, setUser] = useState<SessionUser | null>(null);
+  const [sitesLoading, setSitesLoading] = useState(false);
+  const [sites, setSites] = useState<ManagedSite[]>([]);
+  const [selectedSiteKey, setSelectedSiteKey] = useState("");
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [authForm, setAuthForm] = useState({ email: "", password: "" });
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authStatus, setAuthStatus] = useState<{ tone: "success" | "error"; message: string } | null>(null);
+  const [deviceStatus, setDeviceStatus] = useState<{ tone: "idle" | "success" | "error" | "pending"; message: string }>({
+    tone: "idle",
+    message: "",
+  });
+
   const apiBase = import.meta.env.VITE_AGENTBAR_API_BASE || "";
-  const apiBaseDisplay = apiBase || window.location.origin;
+  const apiBaseDisplay = apiBase || currentOrigin;
   const llmProvider = apiBase
     ? createProxyProvider({
         endpoint: `${apiBase}/api/chat`,
-        siteUrl: window.location.origin,
+        siteUrl: currentOrigin,
       })
     : undefined;
+
+  const openConsole = () => setConsoleOpen(true);
+  const closeConsole = () => {
+    setConsoleOpen(false);
+    setDeviceCode("");
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const url = new URL(window.location.href);
+    if (consoleOpen) {
+      url.searchParams.set("console", "1");
+    } else {
+      url.searchParams.delete("console");
+    }
+    if (deviceCode) {
+      url.searchParams.set("deviceCode", deviceCode);
+    } else {
+      url.searchParams.delete("deviceCode");
+    }
+    window.history.replaceState({}, "", url.toString());
+  }, [consoleOpen, deviceCode]);
+
+  const apiRequest = async <T,>(path: string, init?: RequestInit) => {
+    const response = await fetch(`${apiBaseDisplay}${path}`, {
+      credentials: "include",
+      ...init,
+      headers: {
+        ...(init?.body ? { "Content-Type": "application/json" } : {}),
+        ...(init?.headers ?? {}),
+      },
+    });
+    const data = (await response.json().catch(() => ({}))) as T & { error?: string };
+    if (!response.ok) {
+      throw new Error(data?.error || `Request failed (${response.status})`);
+    }
+    return data;
+  };
+
+  const syncFormToSite = (siteKey: string, items = sites) => {
+    const site = items.find((entry) => entry.siteKey === siteKey) ?? null;
+    setConfigForm(toConfigForm(site, currentOrigin));
+    setSelectedSiteKey(siteKey);
+  };
+
+  const loadSites = async (nextSelectedSiteKey?: string) => {
+    setSitesLoading(true);
+    try {
+      const data = await apiRequest<{ items: ManagedSite[] }>("/api/sites");
+      const items = Array.isArray(data.items) ? data.items : [];
+      setSites(items);
+      const preferredKey =
+        nextSelectedSiteKey ||
+        selectedSiteKey ||
+        items.find((entry) => entry.siteKey === new URL(currentOrigin || "https://example.com").hostname)?.siteKey ||
+        items[0]?.siteKey ||
+        "";
+      if (preferredKey) {
+        syncFormToSite(preferredKey, items);
+      } else {
+        setSelectedSiteKey("");
+        setConfigForm(createDefaultConfig(currentOrigin));
+      }
+    } catch (error) {
+      setConfigStatus({
+        tone: "error",
+        message: error instanceof Error ? error.message : "failed to load sites.",
+      });
+    } finally {
+      setSitesLoading(false);
+    }
+  };
+
+  const loadSession = async () => {
+    setSessionLoading(true);
+    try {
+      const data = await apiRequest<{ user: SessionUser | null }>("/api/auth/session");
+      setUser(data.user ?? null);
+      if (data.user) {
+        await loadSites();
+      } else {
+        setSites([]);
+        setSelectedSiteKey("");
+      }
+    } catch (error) {
+      setAuthStatus({
+        tone: "error",
+        message: error instanceof Error ? error.message : "failed to load session.",
+      });
+    } finally {
+      setSessionLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadSession();
+  }, []);
+
+  const hostedSiteUrl = configForm.siteUrl || currentOrigin;
+  const hostedSiteKey = (() => {
+    try {
+      return new URL(hostedSiteUrl).hostname;
+    } catch {
+      return "";
+    }
+  })();
+
+  const hostedSnippet = `<script src="${apiBaseDisplay}/agentbar.js" data-site-key="${hostedSiteKey || "your-site-key"}"></script>`;
+
+  const loadStatus = async () => {
+    if (!user) {
+      openConsole();
+      setConfigStatus({ tone: "error", message: "sign in to load your sites." });
+      return;
+    }
+    await loadSites();
+  };
+
+  const saveHostedConfig = async () => {
+    if (!user) {
+      openConsole();
+      setConfigStatus({ tone: "error", message: "sign in to save hosted settings." });
+      return;
+    }
+
+    setConfigSaving(true);
+    setConfigStatus(null);
+    try {
+      await apiRequest("/api/config", {
+        method: "POST",
+        body: JSON.stringify({
+          siteKey: hostedSiteKey || undefined,
+          config: {
+            siteUrl: hostedSiteUrl,
+            themeColor: configForm.themeColor,
+            position: configForm.position,
+            greeting: configForm.greeting,
+            suggestions: configForm.suggestions.split("|").map((item) => item.trim()).filter(Boolean),
+            apiBase: apiBaseDisplay,
+          },
+        }),
+      });
+      await loadSites(hostedSiteKey);
+      setConfigStatus({ tone: "success", message: "settings saved." });
+    } catch (error) {
+      setConfigStatus({
+        tone: "error",
+        message: error instanceof Error ? error.message : "failed to save settings.",
+      });
+    } finally {
+      setConfigSaving(false);
+    }
+  };
+
+  const copyHostedSnippet = async () => {
+    try {
+      await navigator.clipboard.writeText(hostedSnippet);
+      setConfigStatus({ tone: "success", message: "snippet copied." });
+    } catch {
+      setConfigStatus({ tone: "error", message: "copy failed. select the snippet manually." });
+    }
+  };
+
+  const reindexCurrent = async () => {
+    try {
+      await apiRequest("/api/ingest", {
+        method: "POST",
+        body: JSON.stringify({
+          url: hostedSiteUrl,
+          depth: 2,
+          maxPages: 25,
+          siteKey: hostedSiteKey || undefined,
+          force: true,
+        }),
+      });
+      setConfigStatus({ tone: "success", message: "reindex complete." });
+      await loadSites(hostedSiteKey);
+    } catch (error) {
+      setConfigStatus({
+        tone: "error",
+        message: error instanceof Error ? error.message : "failed to reindex.",
+      });
+    }
+  };
+
+  const submitAuth = async () => {
+    setAuthBusy(true);
+    setAuthStatus(null);
+    try {
+      await apiRequest(`/api/auth/${authMode}`, {
+        method: "POST",
+        body: JSON.stringify(authForm),
+      });
+      setAuthForm({ email: "", password: "" });
+      setAuthStatus({
+        tone: "success",
+        message: authMode === "login" ? "signed in." : "account created.",
+      });
+      await loadSession();
+    } catch (error) {
+      setAuthStatus({
+        tone: "error",
+        message: error instanceof Error ? error.message : "authentication failed.",
+      });
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const logout = async () => {
+    await apiRequest("/api/auth/logout", { method: "POST" });
+    setUser(null);
+    setSites([]);
+    setSelectedSiteKey("");
+    setAuthStatus(null);
+    setConfigStatus(null);
+    setConfigForm(createDefaultConfig(currentOrigin));
+  };
+
+  useEffect(() => {
+    if (!user || !deviceCode || deviceStatus.tone === "pending" || deviceStatus.tone === "success") {
+      return;
+    }
+    let cancelled = false;
+    const approve = async () => {
+      setDeviceStatus({ tone: "pending", message: "approving cli login..." });
+      try {
+        await apiRequest("/api/auth/device/approve", {
+          method: "POST",
+          body: JSON.stringify({ deviceCode }),
+        });
+        if (!cancelled) {
+          setDeviceStatus({ tone: "success", message: "cli login approved. return to the terminal." });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setDeviceStatus({
+            tone: "error",
+            message: error instanceof Error ? error.message : "failed to approve cli login.",
+          });
+        }
+      }
+    };
+    void approve();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, deviceCode, deviceStatus.tone]);
+
+  const accentChannels = useMemo(() => {
+    const cleaned = configForm.themeColor.replace("#", "");
+    const normalized =
+      cleaned.length === 3 ? cleaned.split("").map((char) => `${char}${char}`).join("") : cleaned;
+    if (normalized.length !== 6) {
+      return "47 107 90";
+    }
+    const value = Number.parseInt(normalized, 16);
+    return `${(value >> 16) & 255} ${(value >> 8) & 255} ${value & 255}`;
+  }, [configForm.themeColor]);
+
+  const toRgba = (hex: string, alpha: number) => {
+    const cleaned = hex.replace("#", "");
+    const normalized = cleaned.length === 3 ? cleaned.split("").map((char) => `${char}${char}`).join("") : cleaned;
+    if (normalized.length !== 6) {
+      return `rgba(47, 107, 90, ${alpha})`;
+    }
+    const value = Number.parseInt(normalized, 16);
+    return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, ${alpha})`;
+  };
+
+  const suggestionList = configForm.suggestions
+    .split("|")
+    .map((item) => item.trim())
+    .filter(Boolean);
 
   const hostApi: HostApi = {
     searchFaq: async (query) => {
@@ -279,177 +633,27 @@ export default function App() {
       "docked assistant with edge placement",
       "typed tool calls scoped to HostApi",
       "hosted settings with live sync",
-      "per-agent session panels with history",
+      "cli login that opens the web console",
     ],
-    openTutorial: async (id) => console.log("opening tutorial", id),
+    openTutorial: async () => openConsole(),
     getPageContext: async () => ({
       pageName: "workspace overview",
       hints: ["active users", "recent changes", "launch notes"],
     }),
-    suggestCopy: async (area) => {
-      if (area.toLowerCase().includes("hero")) {
-        return "dock a site assistant that answers product questions without leaving the page.";
-      }
-      return "guide users with contextual plugins that understand your product language.";
-    },
+    suggestCopy: async (area) =>
+      area.toLowerCase().includes("hero")
+        ? "dock a site assistant that answers product questions without leaving the page."
+        : "guide users with contextual plugins that understand your product language.",
   };
 
   const apiSchema: HostApiSchema = {
     searchFaq: { description: "search internal help docs.", input: "query: string", output: "FAQ[]" },
     createTicket: { description: "create a support ticket.", input: "{ subject, body, userId? }", output: "{ ticketId }" },
     listKeyFeatures: { description: "list the primary product features.", output: "string[]" },
-    openTutorial: { description: "open a tutorial by id.", input: "id: string" },
+    openTutorial: { description: "open the hosted console.", input: "id: string" },
     getPageContext: { description: "return page metadata and hints.", output: "{ pageName, hints }" },
     suggestCopy: { description: "generate copy for a specific area.", input: "area: string", output: "string" },
   };
-
-  const [configForm, setConfigForm] = useState({
-    siteUrl: window.location.origin,
-    themeColor: "#2f6b5a",
-    position: "right",
-    greeting: "welcome back. what can i help with?",
-    suggestions: "search docs | explain a feature | draft homepage copy",
-  });
-  const [configSaving, setConfigSaving] = useState(false);
-  const [configStatus, setConfigStatus] = useState<{ tone: "success" | "error"; message: string } | null>(null);
-  const [statusItems, setStatusItems] = useState<Array<{ key: string; url: string; pages: Array<{ url: string; title: string }> }>>([]);
-  const [statusError, setStatusError] = useState("");
-  const [statusLoading, setStatusLoading] = useState(false);
-
-  const normalizeUrl = (value: string) => {
-    try {
-      if (!value) return "";
-      if (value.startsWith("http://") || value.startsWith("https://")) return new URL(value).toString();
-      return new URL(`https://${value}`).toString();
-    } catch {
-      return "";
-    }
-  };
-
-  const resolveSiteKey = (value: string) => {
-    const normalized = normalizeUrl(value);
-    if (!normalized) return "";
-    try {
-      return new URL(normalized).hostname;
-    } catch {
-      return "";
-    }
-  };
-
-  const toRgba = (hex: string, alpha: number) => {
-    if (!hex) return `rgba(47, 107, 90, ${alpha})`;
-    const cleaned = hex.replace("#", "");
-    const normalized = cleaned.length === 3 ? cleaned.split("").map((char) => `${char}${char}`).join("") : cleaned;
-    if (normalized.length !== 6) return `rgba(47, 107, 90, ${alpha})`;
-    const value = parseInt(normalized, 16);
-    const r = (value >> 16) & 255;
-    const g = (value >> 8) & 255;
-    const b = value & 255;
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  };
-
-  const toRgbChannels = (hex: string) => {
-    if (!hex) return "47 107 90";
-    const cleaned = hex.replace("#", "");
-    const normalized = cleaned.length === 3 ? cleaned.split("").map((char) => `${char}${char}`).join("") : cleaned;
-    if (normalized.length !== 6) return "47 107 90";
-    const value = parseInt(normalized, 16);
-    const r = (value >> 16) & 255;
-    const g = (value >> 8) & 255;
-    const b = value & 255;
-    return `${r} ${g} ${b}`;
-  };
-
-  const loadStatus = async () => {
-    setStatusLoading(true);
-    setStatusError("");
-    try {
-      const response = await fetch(`${apiBaseDisplay}/api/status`);
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.error || "failed to load status");
-      setStatusItems(Array.isArray(data.items) ? data.items : []);
-    } catch (error) {
-      setStatusError(error instanceof Error ? error.message : "unknown error");
-    } finally {
-      setStatusLoading(false);
-    }
-  };
-
-  const reindexCurrent = async () => {
-    setStatusLoading(true);
-    setStatusError("");
-    try {
-      const response = await fetch(`${apiBaseDisplay}/api/ingest`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: window.location.origin, depth: 2, maxPages: 25, force: true }),
-      });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data?.error || "failed to reindex");
-      }
-      await loadStatus();
-    } catch (error) {
-      setStatusError(error instanceof Error ? error.message : "unknown error");
-      setStatusLoading(false);
-    }
-  };
-
-  const hostedSiteUrl = normalizeUrl(configForm.siteUrl) || window.location.origin;
-  const hostedSiteKey = resolveSiteKey(hostedSiteUrl);
-  const hostedSnippet = `<script src="${apiBaseDisplay}/agentbar.js" data-site-key="${hostedSiteKey || "your-site-key"}"></script>`;
-
-  const saveHostedConfig = async () => {
-    setConfigSaving(true);
-    setConfigStatus(null);
-    if (!hostedSiteKey) {
-      setConfigStatus({ tone: "error", message: "enter a valid site url." });
-      setConfigSaving(false);
-      return;
-    }
-
-    try {
-      const response = await fetch(`${apiBaseDisplay}/api/config`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          siteKey: hostedSiteKey,
-          config: {
-            siteUrl: hostedSiteUrl,
-            themeColor: configForm.themeColor,
-            position: configForm.position,
-            greeting: configForm.greeting,
-            suggestions: configForm.suggestions.split("|").map((item) => item.trim()).filter(Boolean),
-            apiBase: apiBaseDisplay,
-          },
-        }),
-      });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data?.error || "failed to save settings.");
-      }
-      setConfigStatus({ tone: "success", message: "settings saved." });
-    } catch (error) {
-      setConfigStatus({
-        tone: "error",
-        message: error instanceof Error ? error.message : "failed to save settings.",
-      });
-    } finally {
-      setConfigSaving(false);
-    }
-  };
-
-  const copyHostedSnippet = async () => {
-    try {
-      await navigator.clipboard.writeText(hostedSnippet);
-      setConfigStatus({ tone: "success", message: "snippet copied." });
-    } catch {
-      setConfigStatus({ tone: "error", message: "copy failed. select the snippet manually." });
-    }
-  };
-
-  const accentChannels = toRgbChannels(configForm.themeColor);
-  const suggestionList = configForm.suggestions.split("|").map((item) => item.trim()).filter(Boolean);
 
   return (
     <div
@@ -481,7 +685,7 @@ export default function App() {
 
           <div className="flex items-center gap-3">
             <ActionButton href="#api">install</ActionButton>
-            <ActionButton href="#console" tone="solid">
+            <ActionButton onClick={openConsole} tone="solid">
               open console
               <ArrowUpRight className="h-4 w-4" weight="regular" />
             </ActionButton>
@@ -508,8 +712,8 @@ export default function App() {
               </p>
 
               <div className="mt-10 flex flex-wrap gap-3">
-                <ActionButton href="#console" tone="solid">
-                  tune the live dock
+                <ActionButton onClick={openConsole} tone="solid">
+                  open the live console
                   <ArrowUpRight className="h-4 w-4" weight="regular" />
                 </ActionButton>
                 <ActionButton href="#overview">see how it lands</ActionButton>
@@ -608,181 +812,74 @@ export default function App() {
 
         <motion.section {...reveal} id="console" className="border-t border-[rgba(22,20,18,0.08)] py-24 md:py-32">
           <div className="mx-auto max-w-[1400px] px-5 md:px-8">
-            <div className="max-w-[42rem]">
-              <p className="text-xs lowercase tracking-[0.28em] text-stone-400">hosted console</p>
-              <h2 className="mt-6 text-4xl font-light lowercase leading-tight tracking-[-0.06em] text-stone-950 md:text-5xl">
-                tune the dock without disturbing the page.
-              </h2>
-              <p className="mt-6 text-base lowercase leading-8 text-stone-600">
-                this stays functional, but the surface is quieter now: labels above fields, clear helper text, visible
-                empty and loading states, and a single framed area instead of a stack of dashboard cards.
-              </p>
-            </div>
+            <div className="grid gap-12 lg:grid-cols-[0.7fr_1.3fr]">
+              <div>
+                <p className="text-xs lowercase tracking-[0.28em] text-stone-400">console</p>
+                <h2 className="mt-6 max-w-[12ch] text-4xl font-light lowercase leading-tight tracking-[-0.06em] text-stone-950 md:text-5xl">
+                  auth, saved sites, and cli login live in one place now.
+                </h2>
+                <p className="mt-6 max-w-[34rem] text-base lowercase leading-8 text-stone-600">
+                  the console is now a real management surface. accounts persist, site settings are tied to the logged in
+                  owner, and the cli can launch the browser to finish login.
+                </p>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <ActionButton onClick={openConsole} tone="solid">
+                    {user ? "manage your sites" : "sign in to manage"}
+                    <ArrowUpRight className="h-4 w-4" weight="regular" />
+                  </ActionButton>
+                  <ActionButton href="#api">read the api</ActionButton>
+                </div>
+              </div>
 
-            <div className="surface-panel mt-14 overflow-hidden rounded-[2.25rem]">
-              <div className="grid divide-y divide-[rgba(22,20,18,0.08)] lg:grid-cols-[1.08fr_0.92fr] lg:divide-x lg:divide-y-0">
-                <div className="p-6 md:p-8">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm lowercase text-stone-950">site configuration</p>
-                      <p className="mt-1 text-sm lowercase text-stone-500">edit the hosted settings for a single site key.</p>
-                    </div>
+              <div className="surface-panel rounded-[2rem] p-6 md:p-8">
+                <div className="flex items-center justify-between border-b border-[rgba(22,20,18,0.08)] pb-5">
+                  <div>
+                    <p className="text-sm lowercase text-stone-950">{user ? "owned sites" : "management preview"}</p>
+                    <p className="mt-1 text-sm lowercase text-stone-500">
+                      {user ? `${sites.length} saved site${sites.length === 1 ? "" : "s"}` : "sign in to unlock saved configs and reindex control."}
+                    </p>
+                  </div>
+                  {user ? (
                     <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(22,20,18,0.08)] bg-white/75 px-3 py-1 text-xs lowercase text-stone-500">
                       <Sparkle className="h-4 w-4 text-[rgb(var(--accent))]" weight="regular" />
-                      live sync
+                      {user.email}
                     </div>
-                  </div>
-
-                  <div className="mt-8 grid gap-5 md:grid-cols-2">
-                    <label className="grid gap-2">
-                      <span className="text-xs lowercase tracking-[0.18em] text-stone-400">site url</span>
-                      <input
-                        value={configForm.siteUrl}
-                        onChange={(event) => setConfigForm((prev) => ({ ...prev, siteUrl: event.target.value }))}
-                        className="w-full rounded-[1.2rem] border border-[rgba(22,20,18,0.1)] bg-white/78 px-4 py-3 text-sm lowercase text-stone-900 outline-none transition focus:border-[rgba(var(--accent),0.35)]"
-                        placeholder="https://your-site.com"
-                      />
-                      <span className="text-xs lowercase leading-6 text-stone-500">used to derive the hosted site key.</span>
-                    </label>
-
-                    <label className="grid gap-2">
-                      <span className="text-xs lowercase tracking-[0.18em] text-stone-400">theme color</span>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="color"
-                          value={configForm.themeColor}
-                          onChange={(event) => setConfigForm((prev) => ({ ...prev, themeColor: event.target.value }))}
-                          className="h-12 w-12 rounded-[1rem] border border-[rgba(22,20,18,0.1)] bg-transparent"
-                        />
-                        <input
-                          value={configForm.themeColor}
-                          onChange={(event) => setConfigForm((prev) => ({ ...prev, themeColor: event.target.value }))}
-                          className="flex-1 rounded-[1.2rem] border border-[rgba(22,20,18,0.1)] bg-white/78 px-4 py-3 text-sm lowercase text-stone-900 outline-none transition focus:border-[rgba(var(--accent),0.35)]"
-                          placeholder="#2f6b5a"
-                        />
-                      </div>
-                      <span className="text-xs lowercase leading-6 text-stone-500">used by the dock launcher and reply accents.</span>
-                    </label>
-
-                    <label className="grid gap-2 md:col-span-2">
-                      <span className="text-xs lowercase tracking-[0.18em] text-stone-400">greeting</span>
-                      <input
-                        value={configForm.greeting}
-                        onChange={(event) => setConfigForm((prev) => ({ ...prev, greeting: event.target.value }))}
-                        className="w-full rounded-[1.2rem] border border-[rgba(22,20,18,0.1)] bg-white/78 px-4 py-3 text-sm lowercase text-stone-900 outline-none transition focus:border-[rgba(var(--accent),0.35)]"
-                        placeholder="welcome back. what can i help with?"
-                      />
-                      <span className="text-xs lowercase leading-6 text-stone-500">shown as the first line inside the dock.</span>
-                    </label>
-
-                    <label className="grid gap-2">
-                      <span className="text-xs lowercase tracking-[0.18em] text-stone-400">dock position</span>
-                      <select
-                        value={configForm.position}
-                        onChange={(event) => setConfigForm((prev) => ({ ...prev, position: event.target.value }))}
-                        className="w-full rounded-[1.2rem] border border-[rgba(22,20,18,0.1)] bg-white/78 px-4 py-3 text-sm lowercase text-stone-900 outline-none transition focus:border-[rgba(var(--accent),0.35)]"
-                      >
-                        <option value="right">right</option>
-                        <option value="left">left</option>
-                        <option value="bottom">bottom</option>
-                      </select>
-                      <span className="text-xs lowercase leading-6 text-stone-500">choose the dock placement per page.</span>
-                    </label>
-
-                    <label className="grid gap-2">
-                      <span className="text-xs lowercase tracking-[0.18em] text-stone-400">suggestions</span>
-                      <input
-                        value={configForm.suggestions}
-                        onChange={(event) => setConfigForm((prev) => ({ ...prev, suggestions: event.target.value }))}
-                        className="w-full rounded-[1.2rem] border border-[rgba(22,20,18,0.1)] bg-white/78 px-4 py-3 text-sm lowercase text-stone-900 outline-none transition focus:border-[rgba(var(--accent),0.35)]"
-                        placeholder="search docs | explain a feature | draft copy"
-                      />
-                      <span className="text-xs lowercase leading-6 text-stone-500">separate suggestion chips with a vertical bar.</span>
-                    </label>
-                  </div>
-
-                  <div className="mt-8 flex flex-wrap gap-3">
-                    <ActionButton onClick={saveHostedConfig} tone="solid">
-                      {configSaving ? "saving..." : "save settings"}
-                    </ActionButton>
-                    <ActionButton onClick={copyHostedSnippet}>copy snippet</ActionButton>
-                  </div>
-
-                  {configStatus && (
-                    <p className={`mt-5 text-sm lowercase ${configStatus.tone === "error" ? "text-rose-700" : "text-[rgb(var(--accent))]"}`}>
-                      {configStatus.message}
-                    </p>
-                  )}
+                  ) : null}
                 </div>
 
-                <div className="p-6 md:p-8">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm lowercase text-stone-950">embed + indexing</p>
-                      <p className="mt-1 text-sm lowercase text-stone-500">copy the script, then inspect what has already been ingested.</p>
-                    </div>
-                    <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(22,20,18,0.08)] bg-white/75 px-3 py-1 text-xs lowercase text-stone-500">
-                      <ChartLineUp className="h-4 w-4 text-[rgb(var(--accent))]" weight="regular" />
-                      status view
-                    </div>
-                  </div>
-
-                  <div className="mt-8 rounded-[1.5rem] border border-[rgba(22,20,18,0.1)] bg-[rgba(22,20,18,0.96)]">
-                    <div className="border-b border-white/10 px-4 py-3 text-[11px] lowercase tracking-[0.22em] text-stone-500">embed snippet</div>
-                    <pre className="whitespace-pre-wrap px-4 py-4 text-xs leading-7 text-stone-200">{hostedSnippet}</pre>
-                  </div>
-
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <ActionButton onClick={loadStatus}>{statusLoading ? "loading..." : "load status"}</ActionButton>
-                    <ActionButton onClick={reindexCurrent}>reindex site</ActionButton>
-                  </div>
-
-                  {statusError && (
-                    <div className="mt-5 rounded-[1.2rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm lowercase text-rose-700">
-                      {statusError}
+                <div className="mt-6 space-y-3">
+                  {user ? (
+                    sites.length > 0 ? (
+                      sites.slice(0, 4).map((site) => (
+                        <button
+                          key={site.siteKey}
+                          type="button"
+                          onClick={() => {
+                            syncFormToSite(site.siteKey);
+                            openConsole();
+                          }}
+                          className="flex w-full items-center justify-between rounded-[1.35rem] border border-[rgba(22,20,18,0.08)] bg-white/76 px-4 py-4 text-left"
+                        >
+                          <div>
+                            <p className="text-sm lowercase text-stone-900">{site.siteKey}</p>
+                            <p className="mt-1 text-xs lowercase text-stone-500">{site.siteUrl}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs lowercase text-stone-400">{site.pageCount} pages</p>
+                            <p className="mt-1 text-xs lowercase text-stone-400">{site.chunkCount} chunks</p>
+                          </div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="rounded-[1.35rem] border border-[rgba(22,20,18,0.08)] bg-white/76 px-4 py-4 text-sm lowercase leading-7 text-stone-500">
+                        no sites saved yet. open the console to save the current site and start indexing.
+                      </div>
+                    )
+                  ) : (
+                    <div className="rounded-[1.35rem] border border-[rgba(22,20,18,0.08)] bg-white/76 px-4 py-4 text-sm lowercase leading-7 text-stone-500">
+                      the hosted console now includes account auth, database-backed site records, and browser-based cli login approval.
                     </div>
                   )}
-
-                  <div className="mt-6">
-                    {statusLoading ? (
-                      <div className="space-y-3">
-                        {[1, 2].map((item) => (
-                          <div key={item} className="shimmer-block rounded-[1.35rem] border border-[rgba(22,20,18,0.08)] bg-white/75 p-4">
-                            <div className="h-4 w-32 rounded-full bg-stone-200/80" />
-                            <div className="mt-3 h-3 w-48 rounded-full bg-stone-200/60" />
-                          </div>
-                        ))}
-                      </div>
-                    ) : statusItems.length === 0 ? (
-                      <div className="rounded-[1.35rem] border border-[rgba(22,20,18,0.08)] bg-white/76 px-4 py-4 text-sm lowercase leading-7 text-stone-500">
-                        no indexed sites yet. use “load status” when the api is running.
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {statusItems.map((item) => (
-                          <div key={item.key} className="rounded-[1.35rem] border border-[rgba(22,20,18,0.08)] bg-white/76 px-4 py-4">
-                            <div className="flex items-start justify-between gap-4">
-                              <div>
-                                <p className="text-sm lowercase text-stone-900">{item.key}</p>
-                                <p className="mt-1 text-xs lowercase text-stone-500">{item.url}</p>
-                              </div>
-                              <span className="text-xs lowercase tracking-[0.22em] text-stone-400">{item.pages.length} pages</span>
-                            </div>
-                            <div className="mt-4 flex flex-wrap gap-2">
-                              {item.pages.slice(0, 3).map((page) => (
-                                <span
-                                  key={`${item.key}-${page.url}`}
-                                  className="rounded-full border border-[rgba(22,20,18,0.08)] bg-white px-3 py-1.5 text-[11px] lowercase text-stone-500"
-                                >
-                                  {page.title || page.url}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>
@@ -797,13 +894,12 @@ export default function App() {
                 the assistant can stay subtle until someone needs it.
               </h2>
               <p className="mt-6 max-w-[34rem] text-base lowercase leading-8 text-stone-600">
-                the page is cleaner now, but the functional pieces are still here. open the dock, change the hosted
-                settings, and use the landing page as the product demo instead of a marketing template.
+                the page stays clean, while the console behind it now handles auth, site ownership, persistence, and cli login.
               </p>
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <ActionButton href="#console" tone="solid">
+              <ActionButton onClick={openConsole} tone="solid">
                 open console
                 <ArrowUpRight className="h-4 w-4" weight="regular" />
               </ActionButton>
@@ -825,6 +921,280 @@ export default function App() {
           </div>
         </footer>
       </main>
+
+      {consoleOpen ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-[rgba(22,20,18,0.32)] px-4 py-6 backdrop-blur-sm">
+          <div className="surface-panel relative max-h-[88dvh] w-full max-w-[1180px] overflow-hidden rounded-[2.25rem]">
+            <button
+              type="button"
+              onClick={closeConsole}
+              className="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(22,20,18,0.08)] bg-white/80 text-stone-500"
+            >
+              <X className="h-5 w-5" weight="regular" />
+            </button>
+
+            <div className="grid max-h-[88dvh] overflow-y-auto lg:grid-cols-[0.78fr_1.22fr]">
+              <div className="border-b border-[rgba(22,20,18,0.08)] p-6 md:p-8 lg:border-b-0 lg:border-r">
+                <p className="text-xs lowercase tracking-[0.28em] text-stone-400">hosted console</p>
+                <h3 className="mt-5 max-w-[10ch] text-4xl font-light lowercase leading-tight tracking-[-0.06em] text-stone-950">
+                  manage every site from one login.
+                </h3>
+                <p className="mt-5 max-w-[28rem] text-sm lowercase leading-7 text-stone-600">
+                  web auth now controls saved sites, config writes, reindexing, and the cli device flow.
+                </p>
+
+                {deviceCode ? (
+                  <div className={`mt-6 rounded-[1.35rem] border px-4 py-4 text-sm lowercase leading-7 ${
+                    deviceStatus.tone === "error"
+                      ? "border-rose-200 bg-rose-50 text-rose-700"
+                      : deviceStatus.tone === "success"
+                        ? "border-[rgba(var(--accent),0.2)] bg-[rgba(var(--accent),0.08)] text-[rgb(var(--accent))]"
+                        : "border-[rgba(22,20,18,0.08)] bg-white/76 text-stone-600"
+                  }`}>
+                    {deviceStatus.message || "a cli login is waiting for approval in this browser session."}
+                  </div>
+                ) : null}
+
+                {sessionLoading ? (
+                  <div className="mt-8 space-y-3">
+                    {[1, 2, 3].map((item) => (
+                      <div key={item} className="shimmer-block rounded-[1.35rem] border border-[rgba(22,20,18,0.08)] bg-white/75 p-4">
+                        <div className="h-4 w-36 rounded-full bg-stone-200/80" />
+                        <div className="mt-3 h-3 w-48 rounded-full bg-stone-200/60" />
+                      </div>
+                    ))}
+                  </div>
+                ) : user ? (
+                  <div className="mt-8 space-y-3">
+                    <div className="flex items-center justify-between rounded-[1.35rem] border border-[rgba(22,20,18,0.08)] bg-white/76 px-4 py-4">
+                      <div>
+                        <p className="text-sm lowercase text-stone-900">{user.email}</p>
+                        <p className="mt-1 text-xs lowercase text-stone-500">signed in to the hosted dashboard</p>
+                      </div>
+                      <ActionButton onClick={logout} className="px-4 py-2.5">
+                        <SignOut className="h-4 w-4" weight="regular" />
+                        sign out
+                      </ActionButton>
+                    </div>
+
+                    <div className="rounded-[1.35rem] border border-[rgba(22,20,18,0.08)] bg-white/76 p-4">
+                      <div className="mb-3 flex items-center justify-between">
+                        <p className="text-sm lowercase text-stone-900">your sites</p>
+                        <ActionButton
+                          onClick={() => {
+                            setSelectedSiteKey("");
+                            setConfigForm(createDefaultConfig(currentOrigin));
+                          }}
+                          className="px-4 py-2.5"
+                        >
+                          use current page
+                        </ActionButton>
+                      </div>
+                      <div className="space-y-2">
+                        {sitesLoading ? (
+                          <p className="text-sm lowercase text-stone-500">loading sites...</p>
+                        ) : sites.length > 0 ? (
+                          sites.map((site) => (
+                            <button
+                              key={site.siteKey}
+                              type="button"
+                              onClick={() => syncFormToSite(site.siteKey)}
+                              className={`w-full rounded-[1.15rem] border px-4 py-3 text-left ${
+                                site.siteKey === selectedSiteKey
+                                  ? "border-[rgba(var(--accent),0.25)] bg-[rgba(var(--accent),0.08)]"
+                                  : "border-[rgba(22,20,18,0.08)] bg-white"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-4">
+                                <div>
+                                  <p className="text-sm lowercase text-stone-900">{site.siteKey}</p>
+                                  <p className="mt-1 text-xs lowercase text-stone-500">{site.siteUrl}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs lowercase text-stone-400">{site.pageCount} pages</p>
+                                  <p className="mt-1 text-xs lowercase text-stone-400">{site.chunkCount} chunks</p>
+                                </div>
+                              </div>
+                            </button>
+                          ))
+                        ) : (
+                          <p className="text-sm lowercase text-stone-500">no saved sites yet.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-8 rounded-[1.35rem] border border-[rgba(22,20,18,0.08)] bg-white/76 p-4">
+                    <div className="flex items-center gap-2 text-sm lowercase text-stone-900">
+                      <SignIn className="h-4 w-4 text-[rgb(var(--accent))]" weight="regular" />
+                      {authMode === "login" ? "sign in" : "create account"}
+                    </div>
+                    <div className="mt-4 grid gap-3">
+                      <label className="grid gap-2">
+                        <span className="text-xs lowercase tracking-[0.18em] text-stone-400">email</span>
+                        <input
+                          value={authForm.email}
+                          onChange={(event) => setAuthForm((prev) => ({ ...prev, email: event.target.value }))}
+                          className="rounded-[1.1rem] border border-[rgba(22,20,18,0.1)] bg-white px-4 py-3 text-sm lowercase outline-none"
+                          placeholder="you@example.com"
+                        />
+                      </label>
+                      <label className="grid gap-2">
+                        <span className="text-xs lowercase tracking-[0.18em] text-stone-400">password</span>
+                        <input
+                          type="password"
+                          value={authForm.password}
+                          onChange={(event) => setAuthForm((prev) => ({ ...prev, password: event.target.value }))}
+                          className="rounded-[1.1rem] border border-[rgba(22,20,18,0.1)] bg-white px-4 py-3 text-sm outline-none"
+                          placeholder="at least 8 characters"
+                        />
+                      </label>
+                      <div className="flex flex-wrap gap-3">
+                        <ActionButton onClick={submitAuth} tone="solid">
+                          {authBusy ? "working..." : authMode === "login" ? "sign in" : "create account"}
+                        </ActionButton>
+                        <ActionButton onClick={() => setAuthMode((current) => (current === "login" ? "register" : "login"))}>
+                          {authMode === "login" ? "need an account?" : "already have one?"}
+                        </ActionButton>
+                      </div>
+                      {authStatus ? (
+                        <p className={`text-sm lowercase ${authStatus.tone === "error" ? "text-rose-700" : "text-[rgb(var(--accent))]"}`}>
+                          {authStatus.message}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 md:p-8">
+                <div className="flex items-center justify-between gap-4 border-b border-[rgba(22,20,18,0.08)] pb-5">
+                  <div>
+                    <p className="text-sm lowercase text-stone-950">site management</p>
+                    <p className="mt-1 text-sm lowercase text-stone-500">save config, copy the snippet, and reindex content.</p>
+                  </div>
+                  {selectedSiteKey ? (
+                    <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(22,20,18,0.08)] bg-white/75 px-3 py-1 text-xs lowercase text-stone-500">
+                      <Sparkle className="h-4 w-4 text-[rgb(var(--accent))]" weight="regular" />
+                      {selectedSiteKey}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="mt-8 grid gap-5 md:grid-cols-2">
+                  <label className="grid gap-2">
+                    <span className="text-xs lowercase tracking-[0.18em] text-stone-400">site url</span>
+                    <input
+                      value={configForm.siteUrl}
+                      onChange={(event) => setConfigForm((prev) => ({ ...prev, siteUrl: event.target.value }))}
+                      className="rounded-[1.1rem] border border-[rgba(22,20,18,0.1)] bg-white/80 px-4 py-3 text-sm lowercase outline-none"
+                      placeholder="https://your-site.com"
+                    />
+                    <span className="text-xs lowercase leading-6 text-stone-500">used to derive the hosted site key.</span>
+                  </label>
+
+                  <label className="grid gap-2">
+                    <span className="text-xs lowercase tracking-[0.18em] text-stone-400">theme color</span>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={configForm.themeColor}
+                        onChange={(event) => setConfigForm((prev) => ({ ...prev, themeColor: event.target.value }))}
+                        className="h-12 w-12 rounded-[1rem] border border-[rgba(22,20,18,0.1)] bg-transparent"
+                      />
+                      <input
+                        value={configForm.themeColor}
+                        onChange={(event) => setConfigForm((prev) => ({ ...prev, themeColor: event.target.value }))}
+                        className="flex-1 rounded-[1.1rem] border border-[rgba(22,20,18,0.1)] bg-white/80 px-4 py-3 text-sm lowercase outline-none"
+                        placeholder="#2f6b5a"
+                      />
+                    </div>
+                    <span className="text-xs lowercase leading-6 text-stone-500">used by the dock launcher and reply accents.</span>
+                  </label>
+
+                  <label className="grid gap-2 md:col-span-2">
+                    <span className="text-xs lowercase tracking-[0.18em] text-stone-400">greeting</span>
+                    <input
+                      value={configForm.greeting}
+                      onChange={(event) => setConfigForm((prev) => ({ ...prev, greeting: event.target.value }))}
+                      className="rounded-[1.1rem] border border-[rgba(22,20,18,0.1)] bg-white/80 px-4 py-3 text-sm lowercase outline-none"
+                      placeholder="welcome back. what can i help with?"
+                    />
+                    <span className="text-xs lowercase leading-6 text-stone-500">shown as the first line inside the dock.</span>
+                  </label>
+
+                  <label className="grid gap-2">
+                    <span className="text-xs lowercase tracking-[0.18em] text-stone-400">dock position</span>
+                    <select
+                      value={configForm.position}
+                      onChange={(event) => setConfigForm((prev) => ({ ...prev, position: event.target.value }))}
+                      className="rounded-[1.1rem] border border-[rgba(22,20,18,0.1)] bg-white/80 px-4 py-3 text-sm lowercase outline-none"
+                    >
+                      <option value="right">right</option>
+                      <option value="left">left</option>
+                      <option value="bottom">bottom</option>
+                    </select>
+                    <span className="text-xs lowercase leading-6 text-stone-500">choose the dock placement per page.</span>
+                  </label>
+
+                  <label className="grid gap-2">
+                    <span className="text-xs lowercase tracking-[0.18em] text-stone-400">suggestions</span>
+                    <input
+                      value={configForm.suggestions}
+                      onChange={(event) => setConfigForm((prev) => ({ ...prev, suggestions: event.target.value }))}
+                      className="rounded-[1.1rem] border border-[rgba(22,20,18,0.1)] bg-white/80 px-4 py-3 text-sm lowercase outline-none"
+                      placeholder="search docs | explain a feature | draft copy"
+                    />
+                    <span className="text-xs lowercase leading-6 text-stone-500">separate suggestion chips with a vertical bar.</span>
+                  </label>
+                </div>
+
+                <div className="mt-8 grid gap-4 xl:grid-cols-[1fr_1fr]">
+                  <div className="rounded-[1.5rem] border border-[rgba(22,20,18,0.1)] bg-[rgba(22,20,18,0.96)]">
+                    <div className="border-b border-white/10 px-4 py-3 text-[11px] lowercase tracking-[0.22em] text-stone-500">embed snippet</div>
+                    <pre className="whitespace-pre-wrap px-4 py-4 text-xs leading-7 text-stone-200">{hostedSnippet}</pre>
+                  </div>
+                  <div className="rounded-[1.5rem] border border-[rgba(22,20,18,0.08)] bg-white/76 px-4 py-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm lowercase text-stone-900">current site summary</p>
+                      <p className="text-xs lowercase text-stone-400">{selectedSiteKey || hostedSiteKey || "unsaved"}</p>
+                    </div>
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <p className="text-xl font-light tracking-[-0.04em] text-stone-950">
+                          {sites.find((site) => site.siteKey === (selectedSiteKey || hostedSiteKey))?.pageCount ?? 0}
+                        </p>
+                        <p className="mt-1 text-xs lowercase text-stone-500">indexed pages</p>
+                      </div>
+                      <div>
+                        <p className="text-xl font-light tracking-[-0.04em] text-stone-950">
+                          {sites.find((site) => site.siteKey === (selectedSiteKey || hostedSiteKey))?.chunkCount ?? 0}
+                        </p>
+                        <p className="mt-1 text-xs lowercase text-stone-500">stored chunks</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <ActionButton onClick={saveHostedConfig} tone="solid">
+                    {configSaving ? "saving..." : "save settings"}
+                  </ActionButton>
+                  <ActionButton onClick={copyHostedSnippet}>copy snippet</ActionButton>
+                  <ActionButton onClick={reindexCurrent}>reindex site</ActionButton>
+                  <ActionButton onClick={loadStatus}>refresh sites</ActionButton>
+                </div>
+
+                {configStatus ? (
+                  <p className={`mt-5 text-sm lowercase ${configStatus.tone === "error" ? "text-rose-700" : "text-[rgb(var(--accent))]"}`}>
+                    {configStatus.message}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <AgentBar
         apiSchema={apiSchema}
