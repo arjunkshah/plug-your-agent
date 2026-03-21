@@ -1,6 +1,6 @@
 {
   "name": "@arjun-shah/agentbar-react",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "type": "module",
   "description": "Agent Plugin Bar React widget.",
   "main": "dist/index.js",
@@ -21,7 +21,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/arjunkshah/plug-your-agent.git"
+    "url": "git+https://github.com/arjunkshah/plug-your-agent.git"
   },
   "keywords": [
     "agent",
@@ -34,7 +34,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@arjun-shah/agentbar-runtime": "^0.1.7",
+    "@arjun-shah/agentbar-runtime": "^0.1.8",
     "@phosphor-icons/react": "^2.1.7"
   },
   "peerDependencies": {

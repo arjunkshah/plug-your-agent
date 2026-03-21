@@ -7,6 +7,7 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
+  server: { port: 5174, open: false },
   resolve: {
     alias: {
       "@arjun-shah/agentbar-react": path.resolve(rootDir, "../../packages/react-widget/src"),

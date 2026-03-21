@@ -75,6 +75,7 @@ export interface LLMProvider {
 
 export interface CreateAgentSessionOptions {
   llmProvider?: LLMProvider;
+  contextProvider?: () => string | null;
 }
 
 export interface OpenAIProviderOptions {
@@ -236,6 +237,37 @@ const extractAfter = (text: string, needle: string) => {
   return text.slice(index + needle.length).trim();
 };
 
+const greetingPhrases = new Set([
+  "hi",
+  "hello",
+  "hey",
+  "hello there",
+  "good morning",
+  "good afternoon",
+  "good evening",
+]);
+
+const isGreeting = (message: string) => {
+  const cleaned = toLower(message).replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+  if (!cleaned || cleaned.length > 24) {
+    return false;
+  }
+  return greetingPhrases.has(cleaned);
+};
+
+const buildGreetingReply = (plugin: AgentPlugin) => {
+  switch (plugin.id) {
+    case "support":
+      return "Hello. Tell me what is wrong and I can search FAQs or open a ticket.";
+    case "onboarding":
+      return "Hello. Ask for key features or tell me which tutorial to open.";
+    case "content":
+      return "Hello. Tell me which section you want copy for, like the hero, CTA, or FAQ.";
+    default:
+      return "Hello. Tell me what you want to do and I will help.";
+  }
+};
+
 const resolveTool = (plugin: AgentPlugin, message: string) => {
   const content = toLower(message);
   const hasTool = (name: string) => plugin.tools.some((tool) => tool.name === name);
@@ -373,11 +405,22 @@ const serializeToolResult = (result: unknown) => {
 const buildLLMMessages = (
   plugin: AgentPlugin,
   steps: AgentStep[],
-  options?: { disableTools?: boolean; followupUserMessage?: string }
+  options?: {
+    disableTools?: boolean;
+    followupUserMessage?: string;
+    contextSnapshot?: string | null;
+  }
 ): LLMMessage[] => {
   const messages: LLMMessage[] = [
     { role: "system", content: buildSystemPrompt(plugin, { disableTools: options?.disableTools }) },
   ];
+
+  if (options?.contextSnapshot) {
+    messages.push({
+      role: "system",
+      content: `Page context:\n${options.contextSnapshot}`,
+    });
+  }
 
   steps.forEach((step) => {
     if (step.role === "user") {
@@ -436,11 +479,20 @@ export const createAgentSession = (
       const steps: AgentStep[] = [];
       const userStep: AgentStep = { role: "user", content: userMessage };
       steps.push(userStep);
+      if (history.length === 0 && isGreeting(userMessage)) {
+        steps.push({
+          role: "assistant",
+          content: buildGreetingReply(plugin),
+        });
+        history.push(...steps);
+        return steps;
+      }
 
       let llmReply: string | null = null;
       let parsedTool: { name: string; input: unknown } | null = null;
       const onToken = sendOptions?.onToken;
       const canStream = Boolean(onToken && options.llmProvider?.generateStream);
+      const contextSnapshot = options.contextProvider ? options.contextProvider() : null;
 
       const generateWithProvider = async (
         messages: LLMMessage[],
@@ -473,7 +525,7 @@ export const createAgentSession = (
       if (options.llmProvider && !canStream) {
         try {
           llmReply = await options.llmProvider.generate({
-            messages: buildLLMMessages(plugin, [...history, userStep]),
+            messages: buildLLMMessages(plugin, [...history, userStep], { contextSnapshot }),
             tools: plugin.tools,
             plugin,
           });
@@ -510,7 +562,7 @@ export const createAgentSession = (
         if (!assistantContent && options.llmProvider) {
           try {
             assistantContent = await generateWithProvider(
-              buildLLMMessages(plugin, [...history, userStep]),
+              buildLLMMessages(plugin, [...history, userStep], { contextSnapshot }),
               canStream ? onToken : undefined
             );
           } catch {
@@ -560,6 +612,7 @@ export const createAgentSession = (
                 disableTools: true,
                 followupUserMessage:
                   "Summarize the tool result for the user with clear next steps. Do not call tools.",
+                contextSnapshot,
               }),
               canStream ? onToken : undefined
             );

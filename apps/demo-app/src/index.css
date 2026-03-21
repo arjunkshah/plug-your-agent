@@ -4,6 +4,10 @@
 
 @layer base {
   :root {
+    --accent: 47 107 90;
+    --canvas: #f5f1ea;
+    --ink: #161412;
+    --muted: #6e675f;
     font-family: "Geist", "Satoshi", ui-sans-serif, system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -11,19 +15,22 @@
 
   html {
     scroll-behavior: smooth;
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
     margin: 0;
     min-height: 100dvh;
-    background: #08090a;
-    color: #f7f8f8;
+    background:
+      radial-gradient(circle at top left, rgba(var(--accent), 0.08), transparent 24%),
+      radial-gradient(circle at 82% 12%, rgba(var(--accent), 0.05), transparent 22%),
+      var(--canvas);
+    color: var(--ink);
   }
 
   ::selection {
-    background: rgba(14, 165, 233, 0.3);
-    color: #f7f8f8;
+    background: rgba(var(--accent), 0.18);
+    color: var(--ink);
   }
 
   ::-webkit-scrollbar {
@@ -36,71 +43,73 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    background: rgba(22, 20, 18, 0.18);
+    border-radius: 999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(22, 20, 18, 0.28);
   }
 
-  code, pre {
-    font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  code,
+  pre {
+    font-family: "Geist Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   }
 }
 
 @layer utilities {
-  .glass {
-    background: rgba(12, 14, 18, 0.7);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+  .surface-panel {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.66)),
+      rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(22, 20, 18, 0.08);
+    box-shadow:
+      0 32px 80px -48px rgba(22, 20, 18, 0.38),
+      inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
   }
 
-  .glass-surface {
-    background: rgba(19, 22, 27, 0.6);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+  .signal-dot {
+    animation: pulseSoft 2.8s ease-in-out infinite;
   }
 
-  .gradient-text {
-    color: #0ea5e9;
+  .drift-slow {
+    will-change: transform;
   }
 
-  .gradient-border {
+  .shimmer-block {
     position: relative;
-    background: linear-gradient(#13161b, #13161b) padding-box,
-                linear-gradient(135deg, rgba(14, 165, 233, 0.3), rgba(14, 165, 233, 0.3)) border-box;
-    border: 1px solid transparent;
+    overflow: hidden;
   }
 
-  .gradient-border-accent {
-    position: relative;
-    background: linear-gradient(#13161b, #13161b) padding-box,
-                linear-gradient(135deg, #0ea5e9, #0ea5e9) border-box;
-    border: 1px solid transparent;
+  .shimmer-block::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.82) 48%, transparent 100%);
+    transform: translateX(-120%);
+    animation: shimmer 2.4s ease-in-out infinite;
   }
+}
 
-  .hover-lift {
-    transition: transform 200ms ease, box-shadow 200ms ease;
+@keyframes shimmer {
+  0% {
+    transform: translateX(-120%);
   }
-
-  .hover-lift:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.5);
+  100% {
+    transform: translateX(120%);
   }
+}
 
-  .hover-glow {
-    transition: box-shadow 300ms ease;
+@keyframes pulseSoft {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
   }
-
-  .hover-glow:hover {
-    box-shadow: 0 18px 36px -28px rgba(14, 165, 233, 0.35);
+  50% {
+    opacity: 0.48;
+    transform: scale(0.88);
   }
-
-  /* Linear-style subtle animations */
-  .animate-stagger-1 { animation-delay: 100ms; }
-  .animate-stagger-2 { animation-delay: 200ms; }
-  .animate-stagger-3 { animation-delay: 300ms; }
-  .animate-stagger-4 { animation-delay: 400ms; }
-  .animate-stagger-5 { animation-delay: 500ms; }
 }

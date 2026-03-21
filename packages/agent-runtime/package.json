@@ -1,6 +1,6 @@
 {
   "name": "@arjun-shah/agentbar-runtime",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "type": "module",
   "description": "Agent Plugin Bar runtime and tool system.",
   "main": "dist/index.js",

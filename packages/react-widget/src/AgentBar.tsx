@@ -252,16 +252,53 @@ export const AgentBar: React.FC<AgentBarProps> = ({
     return () => document.removeEventListener("keydown", handleKey);
   }, [closeOnEscape]);
 
+  const contextCache = useRef<{ value: string; timestamp: number } | null>(null);
+
+  const buildPageContext = useCallback(() => {
+    if (typeof document === "undefined") {
+      return null;
+    }
+    const now = Date.now();
+    if (contextCache.current && now - contextCache.current.timestamp < 5000) {
+      return contextCache.current.value;
+    }
+
+    const title = document.title || "Untitled page";
+    const description =
+      document.querySelector('meta[name="description"]')?.getAttribute("content") ?? "";
+    const headings = Array.from(document.querySelectorAll("h1, h2"))
+      .map((heading) => heading.textContent?.trim() ?? "")
+      .filter(Boolean)
+      .slice(0, 8);
+    const html = document.documentElement?.outerHTML ?? "";
+    const maxLength = 12000;
+    const htmlSnapshot = html.length > maxLength ? `${html.slice(0, maxLength)}...` : html;
+
+    const contextParts = [
+      `Page title: ${title}`,
+      description ? `Meta description: ${description}` : "",
+      headings.length ? `Headings: ${headings.join(" | ")}` : "",
+      htmlSnapshot ? `HTML snapshot (truncated): ${htmlSnapshot}` : "",
+    ].filter(Boolean);
+
+    const context = contextParts.join("\n");
+    contextCache.current = { value: context, timestamp: now };
+    return context;
+  }, []);
+
   const getSession = (plugin: AgentPlugin) => {
     if (!sessionMap.current.has(plugin.id)) {
-      sessionMap.current.set(plugin.id, createAgentSession(plugin, hostApi, { llmProvider }));
+      sessionMap.current.set(
+        plugin.id,
+        createAgentSession(plugin, hostApi, { llmProvider, contextProvider: buildPageContext })
+      );
     }
     return sessionMap.current.get(plugin.id)!;
   };
 
   const activeAgent = enabledPlugins.find((plugin) => plugin.id === activeAgentId) ?? null;
   const inputId = activeAgent ? `agent-input-${activeAgent.id}` : "agent-input";
-  const panelBaseTop = 32;
+  const panelBaseTop = 96;
   const hostEndpoints = useMemo(() => {
     const schemaKeys = Object.keys(apiSchema ?? {});
     if (schemaKeys.length > 0) {
@@ -272,18 +309,18 @@ export const AgentBar: React.FC<AgentBarProps> = ({
 
   const dockPosition =
     position === "left"
-      ? "left-4 top-1/2 -translate-y-1/2"
+      ? "left-6 top-24"
       : position === "right"
-        ? "right-4 top-1/2 -translate-y-1/2"
+        ? "right-6 top-24"
         : "left-1/2 -translate-x-1/2 bottom-4";
 
   const dockLayout = position === "bottom" ? "flex-row" : "flex-col";
 
   const panelPosition =
     position === "left"
-      ? "left-20"
+      ? "left-24"
       : position === "right"
-        ? "right-20"
+        ? "right-24"
         : "left-1/2 -translate-x-1/2 bottom-20";
 
   const panelStyle =
